@@ -32,11 +32,21 @@ const intakeFor = (level, questionCount = 3) => {
   if (questionCount >= 4) questions.push({id: 'Q4', round: 2, category: 'validation', question: '验证标准？', answer: '外部比较'});
   if (questionCount >= 5) questions.push({id: 'Q5', round: 2, category: 'innovation', question: '创新深度？', answer: '机制解释'});
   return {
-    schema_version: '1.0',
+    schema_version: '1.1',
     topic: '定制化技术路线测试',
     route_mode: 'research-process',
     domain_profile: 'general',
     draft_revision: 1,
+    research_content: {
+      input_level: 'outline',
+      source_refs: ['用户消息：三部分研究提纲'],
+      sections: [
+        {id: 'RC1', title: '问题界定', summary: '明确对象、边界与理论依据'},
+        {id: 'RC2', title: '核心分析', summary: '使用数据和具体技术完成分析'},
+        {id: 'RC3', title: '验证输出', summary: '检验结果并形成结论'}
+      ],
+      gaps: []
+    },
     research_context: {level, use_case: '测试与论文'},
     scope: {
       core_question: '解释对象与结果关系',
@@ -97,7 +107,8 @@ const basis = {
 const draftFor = (stageCount, revision = 1, extra = '') => {
   const nodes = Array.from({length: stageCount}, (_, index) => {
     const number = index + 1;
-    return `  S${number}["阶段${number}：研究任务<br/>研究：完成核心分析<br/>方法：匹配数据方法<br/>产出：阶段成果"]`;
+    const thinking = ['问题界定', '核心分析', '验证输出', '机制解释', '成果转化', '综合提升'][index];
+    return `  S${number}["思路：${thinking}<br/>内容：完成核心分析<br/>方法：比较分析法<br/>产出：阶段成果"]`;
   }).join('\n');
   const edges = Array.from({length: stageCount - 1}, (_, index) => `  S${index + 1} --> S${index + 2}`).join('\n');
   return `---
@@ -135,12 +146,17 @@ try {
   }
 
   const prefilled = intakeFor('master', 3);
-  prefilled.questions = [
-    {id: 'Q1', round: 1, category: 'identity_use', question: '用途？', answer: '硕士论文'}
-  ];
-  prefilled.question_count = 1;
-  prefilled.prefilled_from = ['用户附件：研究对象、方法与资源'];
+  prefilled.questions = [];
+  prefilled.question_count = 0;
+  prefilled.prefilled_from = ['用户附件：完整研究内容、研究对象、方法与资源'];
   assertValid(prefilled, draftFor(3));
+
+  const legacyIntake = intakeFor('undergraduate', 3);
+  legacyIntake.schema_version = '1.0';
+  delete legacyIntake.research_content;
+  assertValid(legacyIntake, draftFor(3)
+    .replaceAll('思路：', '阶段：')
+    .replaceAll('内容：', '研究：'));
 
   const sixStage = intakeFor('doctoral', 3);
   sixStage.stage_override = {allowed: true, reason: '用户明确给出六个研究单元'};
@@ -165,7 +181,37 @@ try {
   fails('lock-draft.mjs', project, ['--confirmed']);
   assert.throws(() => readConfirmedSource(project), /changed after confirmation|stale/);
 
+  const titleOnlyProject = path.join(root, 'title-only-blocked');
+  fs.mkdirSync(titleOnlyProject, {recursive: true});
+  const titleOnlyIntake = intakeFor('undergraduate', 0);
+  titleOnlyIntake.research_content = {
+    input_level: 'title-only',
+    source_refs: [],
+    sections: [],
+    gaps: ['请提供研究内容']
+  };
+  writeJson(titleOnlyProject, 'intake_profile.json', titleOnlyIntake);
+  writeJson(titleOnlyProject, 'research_basis.json', basis);
+  fs.writeFileSync(path.join(titleOnlyProject, 'route_draft.mmd'), draftFor(3));
+  fails('validate-draft.mjs', titleOnlyProject);
+  fails('lock-draft.mjs', titleOnlyProject, ['--confirmed']);
+
   const invalidCases = [
+    {
+      name: 'title-only research content',
+      intake: {
+        ...intakeFor('undergraduate'),
+        research_content: {
+          input_level: 'title-only',
+          source_refs: [],
+          sections: [],
+          gaps: ['请提供研究内容']
+        }
+      },
+      basis,
+      draft: draftFor(3),
+      match: /title-only/
+    },
     {
       name: 'more than five questions',
       intake: {...intakeFor('master', 5), questions: [...intakeFor('master', 5).questions, {id: 'Q6', round: 2, category: 'extra', question: '额外问题？', answer: '额外回答'}], question_count: 6},
@@ -245,7 +291,7 @@ try {
   console.log(JSON.stringify({
     ok: true,
     academic_levels: academicCases.map(([level]) => level),
-    question_paths: [1, 3, 4, 5],
+    question_paths: [0, 3, 4, 5],
     revision_lock_invalidation: true,
     rejection_tests: invalidCases.map((item) => item.name)
   }, null, 2));

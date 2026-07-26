@@ -36,6 +36,14 @@ Construct 3–6 stages when supported. Every retained stage should state:
 
 The final task is not automatically a milestone. Designate a stage output only when the confirmed framework identifies one.
 
+For new semantic research-process projects, distinguish the visible roles:
+
+- `groups[].short_label` is the concise research thinking, such as “理论构建” or “机制检验”;
+- the primary content lane explains which concrete data or technique performs which task, how it is checked, and what it produces;
+- the method lane summarizes only broad research-method categories such as “文献分析法” or “案例分析法”.
+
+Do not create a separate thinking lane. Do not move datasets, models, variables, indicators, or validation details into the summary method rail.
+
 ## Other route modes
 
 - `research-framework`: use alignment, containment, and explicit supported relationships. A stage count is a density target, not proof of chronology.
@@ -48,9 +56,9 @@ Compress wording without changing modality or certainty. Preserve “可能”, 
 
 ## Support lanes
 
-- stage/thinking answers “which objective is addressed”;
-- content answers “what work is performed”;
-- method/data answers “how and with what evidence”;
+- the research-thinking rail answers “what concise logic organizes this research unit”;
+- content answers “what work is performed, with which concrete data/technique, and toward which result”;
+- the summary method rail answers only “which broad research-method categories are used”;
 - theory/context answers “under which assumptions”;
 - indicator/outcome answers “what is measured, decided, or delivered”.
 

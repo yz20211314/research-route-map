@@ -5,10 +5,11 @@
 ### `adaptive-research-process`
 
 - Default for new research-process figures.
-- Generate one header for each visible region: stage, thinking, primary content/output, method/data, or another visible custom lane.
+- Generate exactly three visible headers: `研究思路`, `研究内容与阶段输出`, and `研究方法`.
+- Use the left rail for concise research thinking; do not add a separate research-stage column or a duplicate thinking lane.
 - Header geometry is not independent; it exactly reuses its region's horizontal boundary.
 - Every stage renders one independent cell for every visible header. Empty stage/lane intersections remain as empty cells so columns never collapse locally.
-- The stage-title strip belongs only to the primary content/output cell. Thinking, method/data, and custom cells never repeat it.
+- The research-content title strip belongs only to the primary content/output cell. The thinking rail and method cells never repeat it.
 - Try a 1240 px source width, then switch to 1754 px when minimum readable geometry does not fit.
 - Use content-fit height rather than distributing unused A4 height across stage rows.
 - The stage polygon and every per-stage region cell share the same row `y/height`.
@@ -47,7 +48,7 @@
 - Keep 28–40 source-pixel outer margins.
 - Adaptive research-process uses 28 px page margins, 16 px region gaps, 18 px stage gaps, 14 px content-node gaps, 12 px method-stack gaps, and 12 px container vertical padding.
 - The content-cell requirement is stage-title height plus its gap, content occupancy, and padding. Other cells use their own occupancy plus vertical padding. A stage row takes the maximum of those real cell requirements.
-- Keep 16 px gutters between independent cells. Do not draw a merged container across thinking and content or across any other pair of non-stage regions.
+- Keep 16 px gutters between the research-thinking rail, primary content cell, and summary method cell. Do not draw a merged container across them.
 - Use solid macro containers. Optional/pending containers may use a dashed border only with a textual status.
 - Keep no more than two nested container levels.
 
@@ -75,8 +76,10 @@
 
 ## Nodes and grouping
 
-- Stage/thinking labels are concise noun phrases, normally 4–8 CJK characters.
+- Research-thinking labels are unnumbered concise phrases of 2–6 CJK-equivalent characters.
 - Put full questions in the framework, accessible description, or a widened content node.
+- Put concrete datasets, models, variables, indicators, thresholds, and validation in content nodes or their children.
+- Method-rail cards contain broad method-category names only, have no children, and normally use 1–3 cards per research unit.
 - Use `children[]` for two to four parallel subitems inside a parent; never infer children from punctuation.
 - Default child layout is a tree: parent title box above, vertical trunk, horizontal bus, then two to four child boxes connected by vertical branches.
 - Tree containment lines have no arrowhead and contain only `M/L` horizontal or vertical segments.
@@ -149,7 +152,8 @@ Reject if:
 - headers do not exactly match visible-region geometry;
 - any stage has a different number of cells than headers, or a cell does not reuse its header `x/width`;
 - a stage polygon or per-stage cell differs from its row `y/height`;
-- a merged container spans two or more non-stage regions, or a stage title appears outside the primary content/output cell;
+- the visible headers differ from `研究思路 / 研究内容与阶段输出 / 研究方法`, a separate thinking lane appears, or the content title appears outside the primary content/output cell;
+- a summary-method card contains children, a data/indicator/validation node, or concrete data/model/variable detail;
 - an adaptive row has more than 12 px non-content vertical slack;
 - a tree line is curved, uses an arrowhead, crosses text, or a child label is clipped;
 - HTML lacks accessible title/description/reading order;

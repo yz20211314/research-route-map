@@ -6,7 +6,7 @@ Use this reference after topic research and before drafting the Markdown framewo
 
 | Route mode | Use when | Default page grammar |
 |---|---|---|
-| `research-process` | the figure explains how a research question will be answered | stage axis + work packages + matched methods/data + validation + milestones/outcomes |
+| `research-process` | the figure explains how supplied research content answers a research question | concise thinking rail + content/method/data/validation/output flow + summary research methods |
 | `research-framework` | the figure explains concepts, questions, content, evidence, and relationships without a single dominant chronology | aligned matrix or nested framework; arrows only for supported relations |
 | `technology-roadmap` | the figure plans technology/capability development over time | horizontal time horizons + capability/technology layers + maturity/KPI + gates/dependencies/risks |
 | `study-flow` | the figure tracks participants, samples, records, or studies | domain-standard phases + counts/status/reasons + analysis population |
@@ -101,7 +101,7 @@ If no meaningful time horizon or maturity/decision progression exists, use `rese
 For a full research-process/framework figure:
 
 - normally 3–6 macro containers;
-- use one region per visible lane; a typical research-process figure has stage, thinking, content/output, and method/data regions;
+- new research-process figures use three semantic regions: research thinking, content/output, and summary research methods;
 - target 18–45 visible nodes;
 - 1–3 milestones/decisions per stage;
 - no more than 5–7 color roles.

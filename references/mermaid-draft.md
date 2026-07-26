@@ -13,9 +13,9 @@ config:
 ---
 flowchart TD
   %% revision: 1
-  S1["阶段1：问题界定<br/>研究：明确对象边界<br/>方法：文献与需求分析<br/>产出：问题与指标"]
-  S2["阶段2：实证分析<br/>研究：检验核心关系<br/>方法：数据建模<br/>产出：稳健结论"]
-  S3["阶段3：综合验证<br/>研究：比较与解释<br/>方法：案例复核<br/>产出：结论与建议"]
+  S1["思路：理论构建<br/>内容：概念·效应·机制<br/>方法：文献与理论分析法<br/>产出：分析框架"]
+  S2["思路：风险识别<br/>内容：数据·测度·匹配<br/>方法：调查与统计分析法<br/>产出：风险画像"]
+  S3["思路：机制检验<br/>内容：效应·中介·阈值<br/>方法：计量与比较分析法<br/>产出：稳健结论"]
   S1 --> S2
   S2 --> S3
 ```
@@ -27,7 +27,9 @@ Requirements:
 - use stable visible-node IDs: `S1…` for stages/work packages, `D1…` for real decisions, `O1…` for separately visible outcomes, and `P1…` for support/parallel items;
 - use 3–5 `S` nodes by default; six needs the intake density exception;
 - keep the entire draft at no more than 10 visible nodes;
-- a stage card has at most four `<br/>`-separated lines: stage, research content, method/data, output;
+- every `S` card has exactly four `<br/>`-separated semantic lines in this order: `思路：`、`内容：`、`方法：`、`产出：`;
+- keep the text after `思路：` to 2–6 CJK-equivalent characters and do not show “阶段1/阶段2” as visible labels;
+- use the content line for concrete data, techniques, indicators, or validation; use the method line only for one or more summarized method-category names;
 - target no more than 14 CJK-equivalent characters per line; shorten wording instead of shrinking type;
 - use `{...}` only for `D` decision nodes and only when a genuine branch exists;
 - use solid `-->` for the main route;

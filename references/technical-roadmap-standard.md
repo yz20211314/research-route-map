@@ -6,21 +6,22 @@ This is an internal rendering contract, not a universal external standard. Read 
 
 For new research-process figures, prefer an adaptive visible-region page:
 
-- stage: concise stage rail when enabled;
-- thinking: research logic or objective/boundary cards when present;
-- content: research tasks and stage outputs;
-- methods: stage-aligned method/data/indicator cards when present;
+- research thinking: a concise 2–6-character rail label from `groups[].short_label`;
+- content: concrete research tasks, data, models, indicators, validation, and stage outputs;
+- methods: one to three stage-aligned summary research-method cards;
 - bottom: optional 2–5 item outcome/assessment band derived from confirmed milestones.
 
-Generate a header for every visible region and reuse its exact region width. In every stage, render one separate rounded cell beneath each header, including an empty cell when the globally visible lane has no node in that stage. Never merge the thinking and content cells. Put the stage-title strip only at the top of the content/output cell. Try 1240 px width first and switch to 1754 px when trees or the primary flow cannot fit. Derive height from content; do not stretch stage rows to fill A4. Legacy explicit 1.2 designs retain the portrait/landscape A4 presets.
+Generate the exact headers `研究思路 / 研究内容与阶段输出 / 研究方法` and reuse each region width. Do not render a separate “研究阶段” column or duplicate thinking nodes. Put the research-content title strip only at the top of the content/output cell. Try 1240 px width first and switch to 1754 px when trees or the primary flow cannot fit. Derive height from content; do not stretch rows to fill A4. Legacy 1.0–1.3 designs retain their prior contracts.
 
 ## Method rail
 
-- `aligned` is the default: show method/data cards, suppress cross-column support connectors.
-- `mapped`: show selected method-to-task support connectors.
-- `hidden`: hide the method/data cards after confirming that the center still explains the route.
+- `aligned` is the default: show summary method cards and suppress cross-column support connectors.
+- `mapped`: show selected summary-method-to-task support connectors.
+- `hidden`: legacy/other-preset compatibility only; schema 1.4 research-process keeps all three columns visible.
 
 Keep all support relations in the graph.
+
+Summary method cards use broad categories such as 文献分析法、理论分析法、调查研究法、案例分析法、计量分析法 or 比较分析法. Move FO法、specific datasets, machine-learning models, variables, indicators, thresholds, and robustness techniques into the content flow.
 
 ## Research-process stage grammar
 

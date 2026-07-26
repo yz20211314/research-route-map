@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const GRAPH_VERSIONS = new Set(['1.0', '1.1', '1.2']);
-export const DESIGN_VERSIONS = new Set(['1.0', '1.1', '1.2', '1.3']);
+export const DESIGN_VERSIONS = new Set(['1.0', '1.1', '1.2', '1.3', '1.4']);
 export const ROUTE_MODES = new Set(['research-process', 'research-framework', 'technology-roadmap', 'study-flow']);
 export const DOMAIN_PROFILES = new Set([
   'general',
@@ -96,7 +96,8 @@ export function normalizeDesign(input, graph) {
   const routeMode = design.route_mode ?? graph.meta.route_mode ?? 'research-process';
   const sourceCanvas = design.canvas ?? {width: 1240, height: 1754};
   const orientation = design.orientation ?? (sourceCanvas.width > sourceCanvas.height ? 'landscape' : 'portrait');
-  const adaptive = input.schema_version === '1.3' || design.layout_strategy === 'adaptive';
+  const adaptive = ['1.3', '1.4'].includes(input.schema_version) || design.layout_strategy === 'adaptive';
+  const semanticResearchProcess = input.schema_version === '1.4' && routeMode === 'research-process';
   design.route_mode = routeMode;
   design.orientation = orientation;
   design.canvas = sourceCanvas;
@@ -104,13 +105,26 @@ export function normalizeDesign(input, graph) {
   design.page_mode ??= adaptive ? 'content-fit' : 'a4';
   design.child_layout_mode ??= adaptive ? 'tree' : 'grid';
   design.child_layout_overrides ??= {};
-  design.region_labels = {
+  design.region_labels = semanticResearchProcess ? {
+    thinking: '研究思路',
+    content: '研究内容与阶段输出',
+    methods: '研究方法',
+    ...(design.region_labels ?? {})
+  } : {
     stage: '研究阶段',
     thinking: '研究思路',
     content: '研究内容与阶段输出',
     methods: '方法数据与指标',
     ...(design.region_labels ?? {})
   };
+  if (semanticResearchProcess) {
+    design.stage_rail = {
+      enabled: true,
+      semantic_role: 'thinking',
+      ...(design.stage_rail ?? {})
+    };
+    design.method_rail_content ??= 'summary-only';
+  }
   design.layout_mode = adaptive && routeMode === 'research-process'
     ? 'adaptive-research-process'
     : ({
@@ -127,7 +141,7 @@ export function normalizeDesign(input, graph) {
       height: Math.round(sourceCanvas.height * 2),
       dpi: 300
     };
-  design.typography_pt ??= ['1.2', '1.3'].includes(input.schema_version) ? {...DEFAULT_TYPOGRAPHY_PT} : null;
+  design.typography_pt ??= ['1.2', '1.3', '1.4'].includes(input.schema_version) ? {...DEFAULT_TYPOGRAPHY_PT} : null;
   design.line_semantics ??= {orthogonal_only: true, max_segments: 3, optional_style: 'dashed'};
   design.render_edges = design.render_edges !== false;
   design.show_feedback ??= false;

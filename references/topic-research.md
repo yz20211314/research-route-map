@@ -1,6 +1,6 @@
 # Topic-first web research
 
-Use this reference when the user provides only a research topic or asks to supplement supplied material with analogous studies.
+Use this reference after the user supplies complete research content or a structured outline, or when the user asks to supplement that material with analogous studies. A title-only request must return to the content gate in `adaptive-intake.md`.
 
 ## Two-pass research
 
@@ -8,7 +8,7 @@ Use research in two deliberately different passes.
 
 ### Pass 1: analogous-route presearch
 
-Before asking intake questions, inspect two to three close studies, established programs, or domain route templates when available. Extract only:
+After the research-content completeness check passes and before asking adaptive questions, inspect two to three close studies, established programs, or domain route templates when available. Extract only:
 
 - common stage or work-package structure;
 - object/sample/data and method pairings;
@@ -16,7 +16,7 @@ Before asking intake questions, inspect two to three close studies, established 
 - complexity differences relevant to the user's academic level or use;
 - method forks the user must decide.
 
-Save the result in `research_basis.json`. This pass exists to improve the questions, not to author the final route. Do not send a long literature summary.
+Save the result in `research_basis.json`. This pass exists to check the supplied structure and improve questions, not to author or replace the user's research content. Do not send a long literature summary.
 
 ### Pass 2: evidence deepening
 

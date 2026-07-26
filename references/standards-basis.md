@@ -68,7 +68,7 @@ This file separates external requirements and guidance from the skill's internal
 | Preserve identification/screening/allocation/inclusion counts and reasons required by the applicable guideline | PRISMA/CONSORT or selected domain guideline | `study-flow` | mandatory when the guideline is in scope |
 | Load controls, samples, bias safeguards, analysis, validation, and transparency checks from the selected domain profile | NIH rigor and EQUATOR-family guidance | all, profile-dependent | applicability check; never substitutes for design evidence |
 | Use true decision symbols only for actual decisions | ISO 5807 convention, narrowly applied | all | mandatory |
-| Use adaptive content-fit research-process layout, editable standalone SVG, static HTML with the identical embedded SVG, 2× 300 dpi PNG, and straight/orthogonal connectors | house rendering contract | `research-process` | mandatory for new projects |
+| Use the semantic three-column adaptive content-fit research-process layout, editable standalone SVG, static HTML with the identical embedded SVG, 2× 300 dpi PNG, and straight/orthogonal connectors | house rendering contract | `research-process` | mandatory for new projects |
 | Preserve fixed A4 geometry for legacy explicit 1.0–1.2 designs | compatibility contract | all | mandatory when reading existing projects |
 | Use two to three analogous routes to ask no more than five non-repeating adaptive questions | user-selected conversational research contract | all | mandatory for new projects |
 | Use a compact revisioned Mermaid diagram as the sole user confirmation gate | user-selected confirmation contract | all | mandatory for new projects; legacy Markdown remains readable |
@@ -79,7 +79,7 @@ This file separates external requirements and guidance from the skill's internal
 ## Internal decisions
 
 - Default “科研技术路线图” to `research-process`.
-- For a new research-process figure, derive headers from visible regions, create one matching independent cell per stage and region, derive stage height from actual cell requirements, and use content-fit height. Try 1240 px width before 1754 px.
+- For a new research-process figure, use `研究思路 / 研究内容与阶段输出 / 研究方法`; keep detailed techniques/data/indicators in content and summary method categories in the right rail. Derive stage height from actual cell requirements and use content-fit height. Try 1240 px width before 1754 px.
 - Preserve A4 portrait/landscape only for legacy explicit designs or an external delivery requirement.
 - Write an editable standalone SVG, embed it unchanged in the static HTML, and derive the PNG from that standalone SVG.
 - Use straight and orthogonal connectors only.

@@ -490,6 +490,125 @@ function makeAdaptiveProject(stageCount = 4, suffix = '') {
   return dir;
 }
 
+function makeSemanticAdaptiveProject(stageCount = 4, suffix = '') {
+  const dir = makeAdaptiveProject(stageCount, `semantic${suffix ? `-${suffix}` : ''}`);
+  const graph = JSON.parse(fs.readFileSync(path.join(dir, 'research_graph.json'), 'utf8'));
+  const design = JSON.parse(fs.readFileSync(path.join(dir, 'design_spec.json'), 'utf8'));
+  const thinkingNodeIds = new Set(graph.nodes
+    .filter((node) => graph.lanes.find((lane) => lane.id === node.lane)?.kind === 'thinking')
+    .map((node) => node.id));
+  graph.lanes = graph.lanes.filter((lane) => lane.kind !== 'thinking');
+  graph.nodes = graph.nodes.filter((node) => !thinkingNodeIds.has(node.id));
+  graph.edges = graph.edges.filter((edge) => !thinkingNodeIds.has(edge.from) && !thinkingNodeIds.has(edge.to));
+
+  const detailIds = new Set(['theory', 'data', 'indicator', 'validation']);
+  for (const node of graph.nodes) {
+    if (detailIds.has(node.id)) node.lane = 'primary';
+  }
+  const methodNames = ['文献分析法', '调查研究法', '计量分析法', '政策分析法'];
+  const methodLane = graph.lanes.find((lane) => lane.kind === 'method');
+  methodLane.label = '研究方法';
+  const existingMethodNodes = graph.nodes.filter((node) => node.lane === methodLane.id);
+  for (const node of existingMethodNodes) {
+    node.kind = 'method';
+    node.role = 'method';
+    node.label = methodNames[Math.max(0, Number(node.group.slice(1)) - 1)] ?? '综合分析法';
+    node.children = [];
+  }
+  for (let index = 1; index <= stageCount; index += 1) {
+    const groupId = `g${index}`;
+    if (graph.nodes.some((node) => node.group === groupId && node.lane === methodLane.id)) continue;
+    const nodeId = `g${index}-summary-method`;
+    graph.nodes.push({
+      id: nodeId,
+      label: methodNames[index - 1] ?? '综合分析法',
+      lane: methodLane.id,
+      group: groupId,
+      stage: 'other',
+      kind: 'method',
+      role: 'method',
+      emphasis: 'normal',
+      status: 'proposed',
+      children: [],
+      source_refs: [{...sourceRef}]
+    });
+    graph.edges.push({
+      id: `e-${nodeId}-support`,
+      from: nodeId,
+      to: `g${index}-work`,
+      kind: 'support',
+      label: '',
+      status: 'confirmed'
+    });
+  }
+  const thinkingLabels = ['理论构建', '风险识别', '机制检验', '分类治理', '综合验证', '成果转化'];
+  const contentLabels = [
+    '人工智能职业替代风险影响幸福感的理论逻辑与分析框架',
+    '人工智能应用背景下的现状特征与职业替代风险识别',
+    '职业替代风险影响生活幸福感的作用效应与机制识别',
+    '职业韧性与居民幸福感协同提升的分类治理体系'
+  ];
+  graph.groups.forEach((group, index) => {
+    group.short_label = thinkingLabels[index];
+    group.label = contentLabels[index] ?? group.label;
+  });
+  graph.meta.title = '人工智能职业替代风险影响江苏居民生活幸福感的机制与治理研究';
+  const contentDetails = {
+    'g1-work': ['概念理论界定', '直接效应解释', '超时劳动传导', '三类渠道识别'],
+    'g2-work': ['FO任务修正', '随机森林测度', 'CLDS数据匹配', '职业风险画像'],
+    'g3-work': ['PSW与IV识别', '中介与2SRI', '门槛回归检验', '群体异质分析'],
+    'g4-work': ['风险分级预警', '职业能力重塑', '工时保障优化', '分类政策匹配']
+  };
+  for (const [nodeId, labels] of Object.entries(contentDetails)) {
+    const node = graph.nodes.find((item) => item.id === nodeId);
+    if (!node) continue;
+    node.children = labels.map((label, index) => ({id: `${nodeId}-semantic-${index + 1}`, label}));
+  }
+  const dataNode = graph.nodes.find((node) => node.id === 'data');
+  if (dataNode) {
+    dataNode.group = 'g2';
+    dataNode.label = '数据与职业编码';
+    dataNode.children = [
+      {id: 'data-clds', label: 'CLDS微观数据'},
+      {id: 'data-jiangsu', label: '江苏问卷调查'},
+      {id: 'data-coding', label: '职业编码匹配'}
+    ];
+    const dataEdge = graph.edges.find((edge) => edge.id === 'e-data-support');
+    if (dataEdge) dataEdge.to = 'g2-work';
+  }
+  const indicatorNode = graph.nodes.find((node) => node.id === 'indicator');
+  if (indicatorNode) {
+    indicatorNode.label = '变量与评价指标';
+    indicatorNode.children = [
+      {id: 'indicator-risk', label: '职业替代概率'},
+      {id: 'indicator-happiness', label: '生活幸福感'},
+      {id: 'indicator-hours', label: '超时劳动指标'}
+    ];
+  }
+  const validationNode = graph.nodes.find((node) => node.id === 'validation');
+  if (validationNode) {
+    validationNode.label = '稳健性与识别检验';
+    validationNode.children = [
+      {id: 'validation-measure', label: '更换核心指标'},
+      {id: 'validation-sample', label: '调整样本范围'},
+      {id: 'validation-model', label: '改变模型设定'}
+    ];
+  }
+
+  design.schema_version = '1.4';
+  design.stage_rail = {enabled: true, semantic_role: 'thinking'};
+  design.region_labels = {
+    thinking: '研究思路',
+    content: '研究内容与阶段输出',
+    methods: '研究方法'
+  };
+  design.method_rail_content = 'summary-only';
+  design.hidden_node_ids = [];
+  writeJson(dir, 'research_graph.json', graph);
+  writeJson(dir, 'design_spec.json', design);
+  return dir;
+}
+
 function validate(project) {
   run('validate-spec.mjs', project);
   const report = JSON.parse(fs.readFileSync(path.join(project, 'validation-report.json'), 'utf8'));
@@ -674,6 +793,103 @@ try {
   assert.equal(adaptiveLayout.target_png.height, adaptiveLayout.canvas.height * 2);
   assert.ok([1240, 1754].includes(adaptiveLayout.canvas.width));
   assert.equal(adaptiveLayout.canvas.height - adaptiveLayout.content_bbox.bottom >= 28, true);
+
+  const semanticProject = makeSemanticAdaptiveProject();
+  render(semanticProject);
+  run('export-image.mjs', semanticProject);
+  run('visual-qa.mjs', semanticProject);
+  const semanticGraph = JSON.parse(fs.readFileSync(path.join(semanticProject, 'research_graph.json'), 'utf8'));
+  const semanticLayout = JSON.parse(fs.readFileSync(path.join(semanticProject, 'render-layout.json'), 'utf8'));
+  const semanticQa = JSON.parse(fs.readFileSync(path.join(semanticProject, 'qa-report.json'), 'utf8'));
+  assert.equal(semanticQa.ok, true, semanticQa.errors.join('\n'));
+  assert.deepEqual(semanticQa.warnings, [], semanticQa.warnings.join('\n'));
+  assert.equal(semanticLayout.schema_version, '1.4');
+  assert.deepEqual(semanticLayout.headers.map((header) => header.label), [
+    '研究思路',
+    '研究内容与阶段输出',
+    '研究方法'
+  ]);
+  assert.deepEqual(semanticGraph.lanes.map((lane) => lane.kind), ['primary', 'method']);
+  assert.equal(semanticGraph.nodes.some((node) => node.lane === 'thinking'), false);
+  const semanticMethodLane = semanticGraph.lanes.find((lane) => lane.kind === 'method').id;
+  assert.ok(semanticGraph.nodes.filter((node) => node.lane === semanticMethodLane).every((node) => (
+    node.kind === 'method' && node.role === 'method' && node.children.length === 0
+  )));
+  assert.ok(['theory', 'data', 'indicator', 'validation'].every((id) => (
+    semanticGraph.nodes.find((node) => node.id === id)?.lane === 'primary'
+  )));
+  const semanticContentText = semanticGraph.nodes
+    .filter((node) => node.lane === 'primary')
+    .flatMap((node) => [node.label, ...(node.children ?? []).map((child) => child.label)])
+    .join(' ');
+  for (const token of ['FO', 'CLDS', 'PSW', 'IV', '2SRI', '指标', '稳健性']) {
+    assert.match(semanticContentText, new RegExp(token, 'i'));
+  }
+  const semanticMethodText = semanticGraph.nodes
+    .filter((node) => node.lane === semanticMethodLane)
+    .map((node) => node.label)
+    .join(' ');
+  assert.doesNotMatch(semanticMethodText, /FO|CLDS|PSW|2SRI|指标|稳健性/i);
+  assert.ok(Object.values(semanticLayout.region_cells).every((cells) => Object.keys(cells).length === 3));
+
+  const semanticRejections = [
+    {
+      name: 'old research-stage header',
+      mutate: (_graph, design) => { design.region_labels.thinking = '研究阶段'; },
+      match: /region_labels\.thinking|headers/
+    },
+    {
+      name: 'separate thinking lane',
+      mutate: (graph) => { graph.lanes.push({id: 'thinking', label: '研究思路', kind: 'thinking'}); },
+      match: /separate thinking lane|exactly one primary/
+    },
+    {
+      name: 'overlong research thinking',
+      mutate: (graph) => { graph.groups[0].short_label = '非常复杂冗长的研究思路'; },
+      match: /short_label/
+    },
+    {
+      name: 'method tree children',
+      mutate: (graph) => {
+        const node = graph.nodes.find((item) => item.lane === semanticMethodLane);
+        node.children = [{id: 'bad-method-child-a', label: 'CLDS数据'}, {id: 'bad-method-child-b', label: '指标'}];
+      },
+      match: /without children/
+    },
+    {
+      name: 'specific method rail detail',
+      mutate: (graph) => {
+        graph.nodes.find((item) => item.lane === semanticMethodLane).label = 'CLDS数据库';
+      },
+      match: /too specific/
+    },
+    {
+      name: 'hidden semantic method rail',
+      mutate: (_graph, design) => { design.method_rail_mode = 'hidden'; },
+      match: /cannot hide/
+    },
+    {
+      name: 'metric in method rail',
+      mutate: (graph) => {
+        const node = graph.nodes.find((item) => item.lane === semanticMethodLane);
+        node.kind = 'metric';
+        node.role = 'indicator';
+      },
+      match: /kind method and role method/
+    }
+  ];
+  for (const rejection of semanticRejections) {
+    const project = path.join(root, `semantic-reject-${rejection.name.replaceAll(' ', '-')}`);
+    fs.cpSync(semanticProject, project, {recursive: true});
+    const graph = JSON.parse(fs.readFileSync(path.join(project, 'research_graph.json'), 'utf8'));
+    const design = JSON.parse(fs.readFileSync(path.join(project, 'design_spec.json'), 'utf8'));
+    rejection.mutate(graph, design);
+    writeJson(project, 'research_graph.json', graph);
+    writeJson(project, 'design_spec.json', design);
+    runExpectedFailure('validate-spec.mjs', project);
+    const report = JSON.parse(fs.readFileSync(path.join(project, 'validation-report.json'), 'utf8'));
+    assert.ok(report.errors.some((message) => rejection.match.test(message)), `${rejection.name}: ${report.errors.join('\n')}`);
+  }
 
   const adaptiveStageLayouts = [{count: 4, height: adaptiveLayout.canvas.height}];
   for (const count of [3, 5, 6]) {
@@ -892,13 +1108,25 @@ try {
       'dynamic visible-region headers',
       'one independent stage cell per visible header',
       'stage title restricted to the content cell',
+      'schema 1.4 thinking/content/method semantics',
+      'summary-only method rail',
       'content-fit height for 3–6 stages',
       '2–4 child trees across lanes',
       'hidden/empty/custom lane reflow',
       '2× 300 dpi PNG'
     ],
     adaptive_stage_layouts: adaptiveStageLayouts,
-    rejection_tests: ['unlabelled optional edge', 'more than three orthogonal segments', 'edge crossing a node', 'misaligned stage cell', 'SVG curve command', 'standalone/embedded SVG divergence', 'missing editable group', 'Office-incompatible SVG element'],
+    rejection_tests: [
+      ...semanticRejections.map((item) => item.name),
+      'unlabelled optional edge',
+      'more than three orthogonal segments',
+      'edge crossing a node',
+      'misaligned stage cell',
+      'SVG curve command',
+      'standalone/embedded SVG divergence',
+      'missing editable group',
+      'Office-incompatible SVG element'
+    ],
     stress_tests: ['long Chinese/English mixed node', 'six-stage dense layout', 'standalone-SVG browser fallback'],
     static_artifacts: ['route-map.svg', 'route-map.html', 'route-map.png', 'qa-report.json']
   };

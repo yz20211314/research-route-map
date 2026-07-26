@@ -228,7 +228,10 @@ function buildRegions(graph, design, visible, templates, width) {
   )));
   const regions = [];
   if (stageEnabled) {
-    regions.push({id: 'stage', kind: 'stage', lane: null, label: design.region_labels.stage, minimum: STAGE_WIDTH});
+    const stageLabel = design.stage_rail?.semantic_role === 'thinking'
+      ? design.region_labels.thinking
+      : design.region_labels.stage;
+    regions.push({id: 'stage', kind: 'stage', lane: null, label: stageLabel, minimum: STAGE_WIDTH});
   }
   for (const lane of visibleLanes) {
     const members = graph.nodes.filter((node) => node.lane === lane.id && visible.has(node.id));

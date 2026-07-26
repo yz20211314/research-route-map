@@ -3,6 +3,8 @@ import path from 'node:path';
 import {DOMAIN_PROFILES, ROUTE_MODES, sha256} from './route-utils.mjs';
 
 export const INTAKE_LEVELS = new Set(['undergraduate', 'master', 'doctoral', 'professor-team', 'other']);
+export const INTAKE_VERSIONS = new Set(['1.0', '1.1']);
+export const RESEARCH_CONTENT_LEVELS = new Set(['full', 'outline', 'title-only']);
 export const BASIS_STATUSES = new Set(['verified', 'limited', 'unavailable']);
 export const DRAFT_SOURCE_FILES = ['intake_profile.json', 'research_basis.json', 'route_draft.mmd'];
 
@@ -86,7 +88,9 @@ export function validateDraftInputs(intake, basis, draftRaw) {
   const errors = [];
   const warnings = [];
 
-  if (intake?.schema_version !== '1.0') errors.push('intake_profile.json: schema_version must be 1.0');
+  if (!INTAKE_VERSIONS.has(intake?.schema_version)) {
+    errors.push('intake_profile.json: schema_version must be 1.0 or 1.1');
+  }
   if (!nonEmpty(intake?.topic)) errors.push('intake_profile.json: topic is required');
   if (!ROUTE_MODES.has(intake?.route_mode)) errors.push('intake_profile.json: unsupported route_mode');
   if (!DOMAIN_PROFILES.has(intake?.domain_profile)) errors.push('intake_profile.json: unsupported domain_profile');
@@ -96,6 +100,46 @@ export function validateDraftInputs(intake, basis, draftRaw) {
   const level = intake?.research_context?.level;
   if (!INTAKE_LEVELS.has(level)) errors.push('intake_profile.json: unsupported research_context.level');
   if (!nonEmpty(intake?.research_context?.use_case)) errors.push('intake_profile.json: research_context.use_case is required');
+
+  if (intake?.schema_version === '1.1') {
+    const content = intake?.research_content;
+    if (!RESEARCH_CONTENT_LEVELS.has(content?.input_level)) {
+      errors.push('intake_profile.json: research_content.input_level must be full, outline, or title-only');
+    }
+    if (!Array.isArray(content?.source_refs) || content.source_refs.some((item) => !nonEmpty(item))) {
+      errors.push('intake_profile.json: research_content.source_refs must be an array of non-empty origins');
+    }
+    if (!Array.isArray(content?.sections)) {
+      errors.push('intake_profile.json: research_content.sections must be an array');
+    } else {
+      const sectionIds = new Set();
+      for (const section of content.sections) {
+        if (!nonEmpty(section?.id) || sectionIds.has(section.id)) {
+          errors.push(`intake_profile.json: research_content section id is missing or duplicated: ${section?.id ?? '(missing)'}`);
+        }
+        sectionIds.add(section?.id);
+        if (!nonEmpty(section?.title) || !nonEmpty(section?.summary)) {
+          errors.push(`intake_profile.json: research_content section ${section?.id ?? '(missing)'} needs title and summary`);
+        }
+      }
+    }
+    if (!Array.isArray(content?.gaps) || content.gaps.some((item) => !nonEmpty(item))) {
+      errors.push('intake_profile.json: research_content.gaps must be an array of non-empty strings');
+    }
+    if (content?.input_level === 'title-only') {
+      errors.push('draft lock blocked: title-only input requires complete research content or a structured outline');
+    }
+    if (
+      intake?.route_mode === 'research-process'
+      && ['full', 'outline'].includes(content?.input_level)
+      && (content?.sections?.length < 3 || content?.sections?.length > 6)
+    ) {
+      errors.push('intake_profile.json: research-process requires 3–6 research_content sections');
+    }
+    if (['full', 'outline'].includes(content?.input_level) && content?.source_refs?.length === 0) {
+      errors.push('intake_profile.json: supplied research content needs at least one source_ref');
+    }
+  }
 
   for (const field of ['core_question', 'object', 'boundary', 'expected_output']) {
     if (!nonEmpty(intake?.scope?.[field])) errors.push(`intake_profile.json: scope.${field} is required or must be marked 待定`);
@@ -211,6 +255,27 @@ export function validateDraftInputs(intake, basis, draftRaw) {
     if (!node.id.startsWith('D') && node.shape === 'decision') errors.push(`route_draft.mmd: only D nodes may use decision shape: ${node.id}`);
     if (node.id.startsWith('S')) {
       if (node.labelLines.length > 4) errors.push(`route_draft.mmd: stage ${node.id} has more than four lines`);
+      if (intake?.schema_version === '1.1' && intake?.route_mode === 'research-process') {
+        const requiredPrefixes = ['思路：', '内容：', '方法：', '产出：'];
+        if (node.labelLines.length !== requiredPrefixes.length) {
+          errors.push(`route_draft.mmd: ${node.id} must contain exactly 思路/内容/方法/产出 lines`);
+        } else {
+          requiredPrefixes.forEach((prefix, index) => {
+            if (!node.labelLines[index].startsWith(prefix)) {
+              errors.push(`route_draft.mmd: ${node.id} line ${index + 1} must start with ${prefix}`);
+            }
+          });
+          const thinking = node.labelLines[0].slice(requiredPrefixes[0].length).trim();
+          const thinkingLength = cjkEquivalentLength(thinking);
+          if (thinkingLength < 2 || thinkingLength > 6 || /\d/.test(thinking)) {
+            errors.push(`route_draft.mmd: ${node.id} research thinking must be a 2–6 character unnumbered phrase`);
+          }
+          const methodSummary = node.labelLines[2].slice(requiredPrefixes[2].length).trim();
+          if (/(?:数据|样本|指标|变量|数据库|问卷数据|CLDS|PSW|2SRI|FO|mAP|随机森林|梯度提升|工具变量|门槛回归|分段回归)/i.test(methodSummary)) {
+            errors.push(`route_draft.mmd: ${node.id} method line must contain summarized method categories; move concrete data, models, and indicators to 内容`);
+          }
+        }
+      }
       node.labelLines.forEach((line, index) => {
         if (cjkEquivalentLength(line) > 14) errors.push(`route_draft.mmd: ${node.id} line ${index + 1} exceeds 14 CJK-equivalent characters`);
       });

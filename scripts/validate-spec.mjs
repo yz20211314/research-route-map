@@ -57,6 +57,9 @@ try {
 } catch (error) {
   errors.push(`confirmed source: ${error.message}`);
 }
+const sourceIntake = source?.mode === 'mermaid-draft'
+  ? JSON.parse(source.files.intake_profile.raw)
+  : null;
 
 const graph = graphInput ? normalizeGraph(graphInput) : null;
 const design = graph && designInput ? normalizeDesign(designInput, graph) : null;
@@ -306,8 +309,15 @@ if (graphInput && graph) {
 
 if (designInput && design && graph) {
   ensureEnum(designInput.schema_version, DESIGN_VERSIONS, 'design_spec.json schema_version');
-  if (source?.mode === 'mermaid-draft' && !['1.2', '1.3'].includes(designInput.schema_version)) {
-    errors.push('Mermaid-confirmed new projects require design_spec.json schema 1.2 or 1.3');
+  if (source?.mode === 'mermaid-draft' && !['1.2', '1.3', '1.4'].includes(designInput.schema_version)) {
+    errors.push('Mermaid-confirmed projects require design_spec.json schema 1.2, 1.3, or 1.4');
+  }
+  if (
+    sourceIntake?.schema_version === '1.1'
+    && graph.meta.route_mode === 'research-process'
+    && designInput.schema_version !== '1.4'
+  ) {
+    errors.push('intake schema 1.1 research-process projects require design_spec.json schema 1.4');
   }
   const {width, height} = design.canvas;
   if (!(Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0)) {
@@ -352,9 +362,10 @@ if (designInput && design && graph) {
     }
     if (design.editor?.enabled === true) errors.push('schema 1.2 static workflow does not support editor.enabled');
   }
-  if (designInput.schema_version === '1.3') {
+  if (['1.3', '1.4'].includes(designInput.schema_version)) {
+    const schemaLabel = designInput.schema_version;
     if (graphInput.schema_version !== '1.2') {
-      errors.push('design schema 1.3 requires research_graph.json schema 1.2');
+      errors.push(`design schema ${schemaLabel} requires research_graph.json schema 1.2`);
     }
     ensureEnum(design.route_mode, ROUTE_MODES, 'design_spec.json route_mode');
     ensureEnum(design.layout_mode, LAYOUT_MODES, 'design_spec.json layout_mode');
@@ -364,21 +375,21 @@ if (designInput && design && graph) {
     ensureEnum(design.method_rail_mode, METHOD_RAIL_MODES, 'design_spec.json method_rail_mode');
     if (design.route_mode !== graph.meta.route_mode) errors.push('design route_mode must match graph meta.route_mode');
     if (design.route_mode !== 'research-process') {
-      errors.push('schema 1.3 adaptive layout currently supports research-process');
+      errors.push(`schema ${schemaLabel} adaptive layout currently supports research-process`);
     }
     if (design.layout_strategy !== 'adaptive' || design.layout_mode !== 'adaptive-research-process') {
-      errors.push('schema 1.3 requires adaptive layout_strategy and adaptive-research-process layout_mode');
+      errors.push(`schema ${schemaLabel} requires adaptive layout_strategy and adaptive-research-process layout_mode`);
     }
-    if (design.page_mode !== 'content-fit') errors.push('schema 1.3 requires page_mode content-fit');
+    if (design.page_mode !== 'content-fit') errors.push(`schema ${schemaLabel} requires page_mode content-fit`);
     if (!['auto', 'portrait', 'landscape'].includes(designInput.orientation ?? 'auto')) {
-      errors.push('schema 1.3 orientation must be auto, portrait, or landscape');
+      errors.push(`schema ${schemaLabel} orientation must be auto, portrait, or landscape`);
     }
     if (design.target_png?.scale !== 2 || design.target_png?.dpi !== 300) {
-      errors.push('schema 1.3 target_png must use scale 2 and dpi 300');
+      errors.push(`schema ${schemaLabel} target_png must use scale 2 and dpi 300`);
     }
-    if (design.line_semantics?.orthogonal_only !== true) errors.push('schema 1.3 requires line_semantics.orthogonal_only: true');
+    if (design.line_semantics?.orthogonal_only !== true) errors.push(`schema ${schemaLabel} requires line_semantics.orthogonal_only: true`);
     if (!(Number.isInteger(design.line_semantics?.max_segments) && design.line_semantics.max_segments >= 1 && design.line_semantics.max_segments <= 3)) {
-      errors.push('schema 1.3 line_semantics.max_segments must be an integer from 1 to 3');
+      errors.push(`schema ${schemaLabel} line_semantics.max_segments must be an integer from 1 to 3`);
     }
     for (const [key, value] of Object.entries(design.typography_pt ?? {})) {
       if (!Number.isFinite(value) || value < 7) errors.push(`typography_pt.${key} must be at least 7 pt`);
@@ -386,11 +397,70 @@ if (designInput && design && graph) {
     for (const required of ['title', 'stage', 'node', 'method', 'secondary', 'legend']) {
       if (!Number.isFinite(design.typography_pt?.[required])) errors.push(`typography_pt.${required} is required`);
     }
-    if (design.editor?.enabled === true) errors.push('schema 1.3 static workflow does not support editor.enabled');
-    if ((designInput.column_headers ?? []).length) errors.push('schema 1.3 derives headers from visible regions; column_headers must be omitted');
+    if (design.editor?.enabled === true) errors.push(`schema ${schemaLabel} static workflow does not support editor.enabled`);
+    if ((designInput.column_headers ?? []).length) errors.push(`schema ${schemaLabel} derives headers from visible regions; column_headers must be omitted`);
     for (const field of ['placements', 'group_placements', 'visual_group_placements', 'edge_paths']) {
       if (Object.keys(designInput[field] ?? {}).length) {
-        errors.push(`schema 1.3 adaptive layout derives ${field}; explicit values must be omitted`);
+        errors.push(`schema ${schemaLabel} adaptive layout derives ${field}; explicit values must be omitted`);
+      }
+    }
+    if (designInput.schema_version === '1.4') {
+      if (design.stage_rail?.enabled !== true || design.stage_rail?.semantic_role !== 'thinking') {
+        errors.push('schema 1.4 requires stage_rail.enabled true and semantic_role thinking');
+      }
+      if (design.method_rail_content !== 'summary-only') {
+        errors.push('schema 1.4 requires method_rail_content summary-only');
+      }
+      if (design.method_rail_mode === 'hidden') {
+        errors.push('schema 1.4 fixed three-column research-process cannot hide the research-method rail');
+      }
+      const requiredLabels = {
+        thinking: '研究思路',
+        content: '研究内容与阶段输出',
+        methods: '研究方法'
+      };
+      for (const [key, expected] of Object.entries(requiredLabels)) {
+        if (design.region_labels?.[key] !== expected) {
+          errors.push(`schema 1.4 region_labels.${key} must be ${expected}`);
+        }
+      }
+      if (graph.lanes.some((lane) => lane.kind === 'thinking')) {
+        errors.push('schema 1.4 research-process must not contain a separate thinking lane');
+      }
+      const primaryLanes = graph.lanes.filter((lane) => lane.kind === 'primary');
+      const methodLanes = graph.lanes.filter((lane) => lane.kind === 'method');
+      if (graph.lanes.length !== 2 || primaryLanes.length !== 1 || methodLanes.length !== 1) {
+        errors.push('schema 1.4 research-process requires exactly one primary content lane and one method lane');
+      }
+      const thinkingLength = (value) => [...String(value ?? '')].reduce((sum, char) => (
+        sum + (/\s/.test(char) ? 0 : /[\u0000-\u00ff]/.test(char) ? .5 : 1)
+      ), 0);
+      for (const group of graph.groups) {
+        const length = thinkingLength(group.short_label);
+        if (length < 2 || length > 6 || /\d/.test(group.short_label ?? '')) {
+          errors.push(`group ${group.id}: short_label must be an unnumbered 2–6 character research-thinking phrase`);
+        }
+      }
+      const methodLaneIds = new Set(methodLanes.map((lane) => lane.id));
+      const concreteMethodPattern = /(?:CLDS|PSW|2SRI|FO法|mAP|随机森林|梯度提升|工具变量|门槛回归|分段回归|数据库|数据源|指标|变量|样本)/i;
+      for (const node of graph.nodes.filter((item) => methodLaneIds.has(item.lane))) {
+        if (node.kind !== 'method' || node.role !== 'method') {
+          errors.push(`method rail node ${node.id} must use kind method and role method`);
+        }
+        if (node.children?.length) {
+          errors.push(`method rail node ${node.id} must be a summary card without children`);
+        }
+        if (concreteMethodPattern.test(node.label)) {
+          errors.push(`method rail node ${node.id} is too specific; move data, models, variables, and indicators to the content lane`);
+        }
+      }
+      for (const group of graph.groups) {
+        const methodCount = graph.nodes.filter((node) => (
+          node.group === group.id && methodLaneIds.has(node.lane)
+        )).length;
+        if (methodCount < 1 || methodCount > 3) {
+          errors.push(`group ${group.id}: summary method rail requires 1–3 method cards`);
+        }
       }
     }
     for (const [nodeId, mode] of Object.entries(design.child_layout_overrides ?? {})) {
@@ -401,6 +471,13 @@ if (designInput && design && graph) {
       adaptiveLayout = computeAdaptiveLayout(graph, design);
       if (adaptiveLayout.headers.length !== adaptiveLayout.regions.length) {
         errors.push('adaptive layout: header count must equal visible region count');
+      }
+      if (designInput.schema_version === '1.4') {
+        const headerLabels = adaptiveLayout.headers.map((header) => header.label);
+        const expected = ['研究思路', '研究内容与阶段输出', '研究方法'];
+        if (headerLabels.length !== expected.length || headerLabels.some((label, index) => label !== expected[index])) {
+          errors.push(`schema 1.4 adaptive headers must be exactly ${expected.join(' / ')}`);
+        }
       }
       const regionById = new Map(adaptiveLayout.regions.map((region) => [region.id, region]));
       const primaryRegion = adaptiveLayout.regions.find((region) => region.kind === 'primary');
@@ -499,7 +576,7 @@ if (designInput && design && graph) {
     }
   }
 
-  if (designInput.schema_version !== '1.3') {
+  if (!['1.3', '1.4'].includes(designInput.schema_version)) {
     if (design.orientation === 'portrait' && width >= height) errors.push('portrait orientation requires height greater than width');
     if (design.orientation === 'landscape' && width <= height) errors.push('landscape orientation requires width greater than height');
   }
@@ -530,13 +607,13 @@ if (designInput && design && graph) {
         errors.push(`edge_path ${edgeId}: exceeds maximum segment count`);
       }
     } else if (typeof pathValue === 'string') {
-      if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(`edge_path ${edgeId}: schema ${designInput.schema_version} requires an array of points`);
+      if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(`edge_path ${edgeId}: schema ${designInput.schema_version} requires an array of points`);
       else if (pathHasCurve(pathValue)) warnings.push(`legacy edge_path ${edgeId}: curved path will be ignored and rerouted orthogonally`);
     } else errors.push(`edge_path ${edgeId}: unsupported path format`);
   }
 
   if (design.route_mode === 'research-process') {
-    if (designInput.schema_version !== '1.3' && (!Array.isArray(design.column_headers) || design.column_headers.length < 3)) {
+    if (!['1.3', '1.4'].includes(designInput.schema_version) && (!Array.isArray(design.column_headers) || design.column_headers.length < 3)) {
       const message = 'research-process requires at least three column headers';
       if (designInput.schema_version === '1.2') errors.push(message);
       else warnings.push(`legacy design: ${message}`);
@@ -574,13 +651,13 @@ if (designInput && design && graph) {
       const flow = design.stage_flow_nodes?.[group.id];
       if (!Array.isArray(flow) || flow.length < 2 || flow.length > 5) {
         const message = `design_spec.json: ${group.id} must define two to five ordered stage_flow_nodes`;
-        if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+        if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
         else if (flow) warnings.push(`legacy design: ${message}`);
         continue;
       }
       if (flow.at(-1) !== group.output_node) {
         const message = `design_spec.json: ${group.id} flow must end with output_node ${group.output_node}`;
-        if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+        if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
         else warnings.push(`legacy design: ${message}`);
       }
       for (let index = 0; index < flow.length - 1; index += 1) {
@@ -591,11 +668,11 @@ if (designInput && design && graph) {
         ));
         if (!edge) {
           const message = `design_spec.json: missing ordered edge ${flow[index]} -> ${flow[index + 1]}`;
-          if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+          if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
           else warnings.push(`legacy design: ${message}`);
         } else if (!visibleEdges.has(edge.id)) {
           const message = `design_spec.json: ordered edge ${edge.id} must be visible`;
-          if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+          if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
           else warnings.push(`legacy design: ${message}`);
         }
       }
@@ -634,7 +711,7 @@ if (designInput && design && graph) {
       const rendered = graph.edges.some((edge) => edge.kind === 'support' && visibleEdges.has(edge.id) && (edge.from === methodId || edge.to === methodId));
       if (!rendered) {
         const message = `mapped method/data node ${methodId} lacks a visible support edge`;
-        if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+        if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
         else warnings.push(`legacy design: ${message}`);
       }
     }

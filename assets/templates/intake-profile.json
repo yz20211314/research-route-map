@@ -1,9 +1,17 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "topic": "",
   "route_mode": "research-process",
   "domain_profile": "general",
   "draft_revision": 1,
+  "research_content": {
+    "input_level": "title-only",
+    "source_refs": [],
+    "sections": [],
+    "gaps": [
+      "请提供完整研究内容或结构化研究提纲"
+    ]
+  },
   "research_context": {
     "level": "other",
     "use_case": ""

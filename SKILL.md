@@ -1,11 +1,11 @@
 ---
 name: research-route-map
-description: Research a scientific topic, compare two to three analogous routes, ask at most five adaptive questions, draft a compact Mermaid confirmation route, then generate an editable SVG, static HTML, and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with evidence provenance and QA.
+description: Convert supplied research content or a structured research outline into an evidence-aware scientific route map. Validate content completeness, compare two to three analogous routes, ask at most five non-repeating questions, confirm a compact Mermaid draft, then generate an editable SVG, static HTML, and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with provenance and QA. Use when users provide research content for a thesis, proposal, fund application, or project and want a technical route map.
 ---
 
 # Research Route Map
 
-Do not treat a title as a complete research design. Use analogous routes to ask a small number of high-impact questions, let the user edit a compact Mermaid draft through conversation, and render only after explicit confirmation of the current revision.
+Require complete research content or a structured research outline. Never turn a title alone into a complete research design. Extract supplied content before searching or asking questions, let the user edit a compact Mermaid draft through conversation, and render only after explicit confirmation of the current revision.
 
 This skill produces static artifacts. Do not prepare, load, inject, or deliver an editor runtime.
 
@@ -34,7 +34,7 @@ When “技术路线图” is ambiguous, use `research-process` and record the a
 
 ## Non-negotiable sequence
 
-`Topic → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
+`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
 
 For a new project, Mermaid is the only user-facing confirmation gate. Do not create `research_route_framework.md`.
 
@@ -42,13 +42,15 @@ Do not create `research_graph.json`, `design_spec.json`, SVG, HTML, or PNG while
 
 ## 1. Interpret supplied context
 
-Extract what the user already supplied from the topic, messages, attachments, and reference diagrams. Store relevant origins in `intake_profile.json.prefilled_from`. Never repeat a question whose answer is already known.
+Extract what the user already supplied from the research content, topic, messages, attachments, and reference diagrams. Store new-project state in intake schema 1.1, including `research_content.input_level`, source references, sections, and gaps. Store other relevant origins in `prefilled_from`. Never repeat a question whose answer is already known.
+
+If `research_content.input_level` is `title-only`, stop before presearch and drafting. Ask the user to provide complete content or a structured outline using the compact template in [references/adaptive-intake.md](references/adaptive-intake.md). Do not invent the missing research design and do not count this blocking request toward the five adaptive questions.
 
 Treat reference diagrams as first-party context for information architecture, grouping rhythm, and semantic strengths only. Do not copy wording, watermarks, proprietary assets, misleading symbols, unsupported claims, false sequence, or curved connectors.
 
 ## 2. Run light analogous-route presearch
 
-Follow Pass 1 in [references/topic-research.md](references/topic-research.md). Search the web in Chinese and English when useful and inspect two to three close routes. Extract:
+After the content gate passes, follow Pass 1 in [references/topic-research.md](references/topic-research.md). Search the web in Chinese and English when useful and inspect two to three close routes. Extract:
 
 - common stages or work packages;
 - object/sample/data and method combinations;
@@ -68,7 +70,7 @@ Do not promise access to data, samples, equipment, cohorts, instruments, or soft
 
 ## 3. Ask at most two rounds
 
-Follow [references/adaptive-intake.md](references/adaptive-intake.md). In the first round, combine the still-missing parts of these three areas into no more than three clearly numbered questions:
+Follow [references/adaptive-intake.md](references/adaptive-intake.md). A detailed supplied source may resolve the route with zero questions. Otherwise combine the still-missing parts of these three areas into no more than three clearly numbered questions:
 
 1. identity and use;
 2. core problem, object, boundary, and expected outcome;
@@ -76,7 +78,7 @@ Follow [references/adaptive-intake.md](references/adaptive-intake.md). In the fi
 
 Stop the turn for the user's answers. Do not produce the Mermaid draft in the same response as unanswered first-round questions.
 
-After the answers, update `intake_profile.json`. Ask a second round only when a remaining decision can materially change the route. Ask no more than two questions, selected from method fork, validation criteria, innovation/theory depth, data/sample/ethics conditions, or a stage arrangement already proposed by the user.
+After the answers, update `intake_profile.json`. Ask a second round only when a remaining decision can materially change the supplied route. Ask no more than two questions, selected from method fork, validation criteria, innovation/theory depth, data/sample/ethics conditions, or a stage arrangement already proposed by the user.
 
 Total questions actually asked must not exceed five. If the first answer resolves all high-impact choices, skip round 2 and create the draft.
 
@@ -102,7 +104,9 @@ The draft must:
 - use six stages only with a documented density exception;
 - contain no more than 10 visible nodes;
 - use stable IDs such as `S1`, `S2`, `D1`, `O1`, and `P1`;
-- give each stage no more than four lines: stage, research content, method/data, output;
+- for a new `research-process`, give every `S` card exactly four lines in this order: `思路 / 内容 / 方法 / 产出`;
+- keep the research-thinking phrase after `思路：` to 2–6 CJK-equivalent characters and do not expose numbered stage labels;
+- put concrete data, models, variables, indicators, and validation in `内容`; put only summarized method-category names in `方法`;
 - keep each stage line near 14 CJK-equivalent characters;
 - use solid main flow;
 - use a labeled dashed edge only for optional/uncertain support or parallel relations;
@@ -164,10 +168,19 @@ Never use final-graph work to make an unconfirmed research decision.
 Write:
 
 - `research_graph.json` — schema 1.2 scientific nodes, explicit children, semantic edges, groups/lanes, provenance, and omissions with reasons;
-- `design_spec.json` — schema 1.3 adaptive static layout for new `research-process` projects; use the legacy explicit 1.2 contract for compatible existing projects and other route presets;
+- `design_spec.json` — schema 1.4 semantic adaptive layout for new `research-process` projects; use legacy 1.2/1.3 contracts for compatible existing projects and other route presets;
 - `design_spec.md` — optional short human-readable visual description when it helps internal review.
 
-For a new `research-process` project, do not write node placements, group placements, lane coordinates, or column-header geometry. Set `layout_strategy: "adaptive"`, `page_mode: "content-fit"`, `orientation: "auto"`, and `child_layout_mode: "tree"`. The renderer derives visible regions, matching headers, one independent cell per visible region in every stage, stage heights, tree geometry, anchors, outcomes, and canvas height from one layout result.
+For a new `research-process` project:
+
+- create exactly one primary content lane and one method lane; do not create a separate thinking lane or duplicate thinking nodes;
+- use `groups[].short_label` for the 2–6-character left research-thinking rail and `groups[].label` for the content-cell title;
+- place concrete models, datasets, variables, indicators, and validation inside the primary content lane;
+- place only one to three childless summary method cards per group in the method lane;
+- set `stage_rail.semantic_role: "thinking"` and `method_rail_content: "summary-only"`;
+- use the exact visible headers `研究思路 / 研究内容与阶段输出 / 研究方法`.
+
+Do not write node placements, group placements, lane coordinates, or column-header geometry. Set `layout_strategy: "adaptive"`, `page_mode: "content-fit"`, `orientation: "auto"`, and `child_layout_mode: "tree"`. The renderer derives the three regions, matching headers, independent cells, row heights, tree geometry, anchors, outcomes, and canvas height from one layout result.
 
 For a Mermaid-confirmed project, graph metadata must include SHA-256 links to `route_draft.mmd`, `intake_profile.json`, and `research_basis.json` as specified in [references/graph-schema.md](references/graph-schema.md).
 
@@ -193,7 +206,7 @@ Write `route-map.svg` as an editable, self-contained SVG 1.1 artifact, and embed
 
 The standalone SVG is the canonical rendering source. The HTML embeds it unchanged and the PNG derives from it:
 
-- adaptive schema 1.3: the resolved SVG at exactly 2× width and height, with 300 dpi metadata;
+- adaptive schema 1.3/1.4: the resolved SVG at exactly 2× width and height, with 300 dpi metadata;
 - legacy explicit portrait 1.2: `2480 × 3508`;
 - legacy explicit landscape 1.2: `3508 × 2480`.
 
@@ -209,10 +222,11 @@ Playwright may capture the standalone SVG element. If unavailable, rasterize `ro
 - Arrowheads stop at node borders.
 - Parallel nodes use containment or a bus, not a false sequence.
 - A node with two to four `children[]` uses a parent box, an orthogonal no-arrow bus, and separate child boxes by default. Main-flow edges attach to the parent box.
-- Dynamic headers are generated only for visible regions. Every header maps to one independent per-stage cell with the same `x/width`; keep the cell even when that stage has no node in the globally visible lane.
-- Do not merge thinking and content cells. Draw the stage-title strip only at the top of the primary content/output cell.
+- New research-process headers are `研究思路 / 研究内容与阶段输出 / 研究方法`. The left rail is the research-thinking region, not an additional research-stage column.
+- Every header maps to one independent per-stage cell or rail block with the same `x/width`.
+- Draw the research-content title strip only at the top of the primary content/output cell.
 - Stage polygons and all per-stage cells must reuse the same row `y/height`; row height comes from the tallest real cell requirement, not an A4 height allocation.
-- Default method rail is `aligned`; use `mapped` only when visible mapping improves comprehension and `hidden` when cards add noise.
+- New schema 1.4 research-process keeps the method rail visible and defaults to `aligned`; use `mapped` only when visible mapping improves comprehension. `hidden` remains a legacy/other-preset compatibility mode.
 - Use no shadows, gradients, or decorative icons. Keep all final text at 7 pt or larger.
 - Preserve uncertainty words such as “拟”, “探索”, “可能”, and “验证”.
 
@@ -220,7 +234,7 @@ Playwright may capture the standalone SVG element. If unavailable, rasterize `ro
 
 | Artifact | Purpose |
 |---|---|
-| `intake_profile.json` | Identity/use, scope, resources, questions, pending items, revision |
+| `intake_profile.json` | Supplied research content, identity/use, scope, resources, questions, pending items, revision |
 | `research_basis.json` | Two to three analogous routes, transferable patterns, forks, limits |
 | `route_draft.mmd` | Current complete Mermaid confirmation draft |
 | `draft-validation-report.json` | Intake and draft gate checks |

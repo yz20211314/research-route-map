@@ -22,9 +22,8 @@
     ]
   },
   "lanes": [
-    {"id": "thinking", "label": "研究思路", "kind": "thinking"},
     {"id": "content", "label": "研究内容", "kind": "primary"},
-    {"id": "methods", "label": "研究方法与数据", "kind": "method"}
+    {"id": "methods", "label": "研究方法", "kind": "method"}
   ],
   "groups": [{
     "id": "g1",
@@ -130,6 +129,9 @@ Primary sequence, causal, decision, and feedback edges remain solid and therefor
 - at least one primary lane;
 - every group has work content and an `output_node`;
 - actual step order is listed in `design_spec.stage_flow_nodes`; parallel nodes are excluded from that ordered list.
+- new design 1.4 projects use exactly one primary content lane plus one method lane; `groups[].short_label` supplies the left research-thinking rail, so a separate thinking lane is forbidden;
+- detailed data, models, variables, indicators, and validation belong to the primary content lane;
+- the method lane contains only one to three childless summary method cards per group.
 
 ### Research framework
 
@@ -156,27 +158,31 @@ Use `time`, `capability`, `decision_gate`, `risk`, and `metric` nodes as applica
 
 Use `flow_phase` groups and preserve counts/status/reasons in labels or children. A generic outcome band is not required.
 
-## Adaptive static design 1.3
+## Semantic adaptive static design 1.4
 
 Use this contract for new `research-process` figures:
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "route_mode": "research-process",
   "layout_strategy": "adaptive",
   "page_mode": "content-fit",
   "orientation": "auto",
   "child_layout_mode": "tree",
   "child_layout_overrides": {},
+  "stage_rail": {
+    "enabled": true,
+    "semantic_role": "thinking"
+  },
   "region_labels": {
-    "stage": "研究阶段",
     "thinking": "研究思路",
     "content": "研究内容与阶段输出",
-    "methods": "方法数据与指标"
+    "methods": "研究方法"
   },
   "target_png": {"scale": 2, "dpi": 300},
   "method_rail_mode": "aligned",
+  "method_rail_content": "summary-only",
   "render_edges": true,
   "show_feedback": false,
   "typography_pt": {
@@ -206,13 +212,14 @@ Use this contract for new `research-process` figures:
 }
 ```
 
-The adaptive layout owns all geometry:
+The semantic adaptive layout owns all geometry:
 
-- Create one region and one exactly matching header for every visible lane, plus the stage region when enabled.
+- Create exactly three visible regions: the research-thinking rail, primary content/output, and summary research methods.
+- Internally the rail remains the stage geometry carrier, but its semantic role and visible header are `研究思路`; never expose a separate `研究阶段` header.
 - Create `region_cells[group_id][region_id]` for every stage/header intersection. Each cell reuses the region/header `x/width`, and all cells in a stage reuse the stage row `y/height`.
-- Preserve an empty cell when a globally visible lane has no node in one stage. Do not merge thinking, content, method/data, or custom cells.
+- Use `groups[].short_label` in the rail and require an unnumbered 2–6-character phrase.
+- Preserve an empty method cell when a group has no visible method card only when the method rail is explicitly hidden.
 - Place the stage-title strip only in the primary content/output cell.
-- Omit a hidden/empty lane and its header together.
 - Try a 1240 px source width first; switch to 1754 px when region minima, trees, or the primary flow cannot fit.
 - Derive every stage row from the maximum real height required by its cells: title plus content occupancy for the primary cell, and padded node/tree occupancy for other cells.
 - Use the same stage row `y/height` for the stage polygon and every region cell.
@@ -220,9 +227,13 @@ The adaptive layout owns all geometry:
 - Derive the final source height from title, headers, stage rows, outcome band, legend, and a 28 px bottom margin.
 - Resolve PNG dimensions to exactly twice the final SVG dimensions and write 300 dpi metadata.
 
-Do not include `canvas`, `column_headers`, lane coordinates, `placements`, `group_placements`, `visual_group_placements`, or `edge_paths` in a 1.3 adaptive input. These appear only in `render-layout.json` after resolution.
+Do not include `canvas`, `column_headers`, lane coordinates, `placements`, `group_placements`, `visual_group_placements`, or `edge_paths` in a 1.4 adaptive input. These appear only in `render-layout.json` after resolution.
 
 `render-layout.json` records `regions`, `headers`, `region_cells`, `group_rows`, `visual_groups`, `stage_boxes`, `node_anchors`, `node_layouts`, `child_layouts`, `tree_routes`, `content_bbox`, the resolved canvas, the resolved PNG target, `standalone_svg_file`, `standalone_svg_sha256`, `editable_svg`, and `semantic_layers`. In adaptive mode, `visual_groups[group_id]` points exactly to the primary content cell; `group_rows` records occupancy only and is not a visible merged container. Rendering, validation, SVG/HTML export, PNG export, and QA consume the same resolved geometry.
+
+## Legacy adaptive design 1.3
+
+Design 1.3 remains readable for existing adaptive projects. It may contain a separate stage region, thinking lane, primary content lane, and method/data lane with dynamic headers. Do not use it for new research-process generation and do not silently migrate it to the semantic 1.4 profile.
 
 ## Legacy explicit static design 1.2
 
@@ -283,8 +294,9 @@ Do not include `canvas`, `column_headers`, lane coordinates, `placements`, `grou
 
 ## Design rules
 
-- Adaptive 1.3 uses `adaptive-research-process`; explicit 1.2 supports `portrait-research-process`, `landscape-research-process`, `framework-matrix`, `technology-time-layer`, and `study-flow`.
+- Adaptive 1.4 uses `adaptive-research-process`; explicit 1.2 supports `portrait-research-process`, `landscape-research-process`, `framework-matrix`, `technology-time-layer`, and `study-flow`.
 - `method_rail_mode`: `aligned`, `mapped`, or `hidden`.
+- Schema 1.4 research-process permits `aligned` or `mapped`; `hidden` is retained only for older adaptive/explicit contracts.
 - Portrait source canvas is `1240 × 1754`; landscape is `1754 × 1240`. PNG is exactly 2×.
 - The renderer converts `typography_pt` to source-canvas pixels using `150 / 72`.
 - No final text may be below 7 pt.
@@ -306,8 +318,8 @@ Every adjacent point pair must share x or y. Maximum segment count defaults to t
 
 ## Backward compatibility
 
-- Graph schema 1.0/1.1 and design schema 1.0/1.1/1.2 remain readable.
-- New research-process generation uses graph 1.2 plus adaptive design 1.3. Existing explicit 1.2 design files retain their fixed A4 geometry and are not migrated automatically.
+- Graph schema 1.0/1.1 and design schema 1.0/1.1/1.2/1.3 remain readable.
+- New research-process generation uses graph 1.2 plus adaptive design 1.4. Existing design 1.0–1.3 files retain their prior semantics and geometry and are not migrated automatically.
 - A new project uses `intake_profile.json`, `research_basis.json`, `route_draft.mmd`, and `draft_lock.json` as its confirmed source bundle.
 - A legacy project may continue to use `research_route_framework.md` and `framework_lock.json`.
 - Missing `meta.route_mode` normalizes to `research-process`.

@@ -92,7 +92,7 @@ for (const [parentId, children] of Object.entries(layout.child_layouts ?? {})) {
   }
 }
 
-if (designInput.schema_version === '1.3') {
+if (['1.3', '1.4'].includes(designInput.schema_version)) {
   const regions = new Map((layout.regions ?? []).map((region) => [region.id, region]));
   const primaryRegion = (layout.regions ?? []).find((region) => region.kind === 'primary');
   if ((layout.headers ?? []).length !== regions.size) errors.push('adaptive header count differs from visible region count');
@@ -100,6 +100,13 @@ if (designInput.schema_version === '1.3') {
     const region = regions.get(header.id);
     if (!region || ['x', 'y', 'w', 'h'].some((key) => Math.abs(header[key] - region[key]) > .01)) {
       errors.push(`adaptive header ${header.id} is not aligned to its region`);
+    }
+  }
+  if (designInput.schema_version === '1.4') {
+    const expected = ['研究思路', '研究内容与阶段输出', '研究方法'];
+    const actual = (layout.headers ?? []).map((header) => header.label);
+    if (actual.length !== expected.length || actual.some((label, index) => label !== expected[index])) {
+      errors.push(`schema 1.4 headers differ from ${expected.join(' / ')}`);
     }
   }
   for (const group of graph.groups) {
@@ -315,7 +322,7 @@ for (const route of layout.edge_routes ?? []) {
   }
 }
 
-if (['1.2', '1.3'].includes(designInput.schema_version)) {
+if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) {
   for (const [key, value] of Object.entries(layout.typography_pt ?? {})) {
     if (value < 7) errors.push(`typography ${key} is below 7 pt`);
   }
@@ -335,7 +342,7 @@ for (const node of graph.nodes) {
   const borderRatio = contrastRatio(colors.stroke, colors.fill);
   if (borderRatio !== null && borderRatio < 3) {
     const message = `node ${node.id} border contrast is ${borderRatio.toFixed(2)}:1; requires 3:1 grayscale distinction`;
-    if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+    if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
     else warnings.push(message);
   }
 }
@@ -452,15 +459,15 @@ try {
   });
   if (measured.overflows.length) {
     const message = `DOM text overflow in node(s): ${measured.overflows.join(', ')}`;
-    if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+    if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
     else warnings.push(`legacy design: ${message}`);
   }
   if (measured.other_overflows.length) {
     const message = `DOM text overflow in structural text: ${measured.other_overflows.join(', ')}`;
-    if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+    if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
     else warnings.push(`legacy design: ${message}`);
   }
-  if (designInput.schema_version === '1.3') {
+  if (['1.3', '1.4'].includes(designInput.schema_version)) {
     const expectedCellCount = Math.max(0, (layout.headers ?? []).length - 1);
     for (const group of graph.groups) {
       if (measured.region_cell_counts[group.id] !== expectedCellCount) {
@@ -476,7 +483,7 @@ try {
   if (measured.font_status !== 'loaded') warnings.push(`document font status is ${measured.font_status}`);
   if (!Object.values(measured.font_candidates).some(Boolean)) {
     const message = 'no configured CJK font candidate is available';
-    if (['1.2', '1.3'].includes(designInput.schema_version)) errors.push(message);
+    if (['1.2', '1.3', '1.4'].includes(designInput.schema_version)) errors.push(message);
     else warnings.push(`legacy design: ${message}`);
   }
   if (Math.round(measured.svg_width) !== layout.canvas.width || Math.round(measured.svg_height) !== layout.canvas.height) {

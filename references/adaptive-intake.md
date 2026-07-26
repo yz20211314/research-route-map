@@ -1,18 +1,28 @@
 # Adaptive research intake
 
-Use this reference after a topic is supplied and before authoring a Mermaid draft. The intake is deliberately small: use prior context and a light analogous-route search to ask only questions that can change the route.
+Use this reference after a topic and research content are supplied and before authoring a Mermaid draft. A title alone is never a complete route source. The intake is deliberately small: extract supplied content first, then use analogous-route research to ask only questions that can change the route.
 
 ## Intake contract
 
-Store the current state in `intake_profile.json` with schema `1.0`.
+Store new-project state in `intake_profile.json` with schema `1.1`. Schema 1.0 remains readable for existing projects.
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "topic": "",
   "route_mode": "research-process",
   "domain_profile": "general",
   "draft_revision": 1,
+  "research_content": {
+    "input_level": "outline",
+    "source_refs": ["用户消息"],
+    "sections": [
+      {"id": "RC1", "title": "理论分析", "summary": "界定概念并提出作用机制"},
+      {"id": "RC2", "title": "实证识别", "summary": "使用数据识别效应与机制"},
+      {"id": "RC3", "title": "结论应用", "summary": "形成结论与政策建议"}
+    ],
+    "gaps": []
+  },
   "research_context": {
     "level": "master",
     "use_case": "学位论文"
@@ -56,9 +66,29 @@ Store the current state in `intake_profile.json` with schema `1.0`.
 
 Controlled `research_context.level` values are `undergraduate`, `master`, `doctoral`, `professor-team`, and `other`.
 
+Controlled `research_content.input_level` values are:
+
+- `full` — the user supplied full research content;
+- `outline` — the user supplied a structured outline sufficient to identify work packages, methods/evidence, and outputs;
+- `title-only` — only a topic/title is available.
+
+`title-only` blocks Mermaid validation and locking. Ask the user to provide or attach research content with this compact template:
+
+```text
+研究对象与核心问题：
+研究内容1：研究什么；拟用哪些数据或具体方法；形成什么结果
+研究内容2：……
+研究内容3：……
+已有数据、方法要求与限制：
+```
+
+Do not turn a title into a complete research design. Do not count this blocking request as an adaptive research question.
+
 ## Question policy
 
-The first round covers three decision areas, but do not ask again for information already supplied by the topic, an attachment, or an earlier answer:
+First extract `research_content.sections[]` from the supplied message or attachment. A detailed source may resolve every route decision and therefore require zero questions.
+
+The first round covers three decision areas, but do not ask again for information already supplied by the research content, an attachment, or an earlier answer:
 
 1. identity and use;
 2. core question, object, boundary, and expected outcome;
@@ -92,7 +122,7 @@ Use `stage_override.allowed: true` with a concrete reason when the user's explic
 
 ## Stop and blocking rules
 
-Stop questioning when the remaining uncertainty will not change the route. Mark lower-impact uncertainty in `unresolved`.
+Stop questioning when the remaining uncertainty will not change the route. Mark lower-impact uncertainty in `unresolved`. Never ask merely to fill a quota.
 
 An unresolved item has:
 
