@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Codex skill for evidence-aware, user-confirmed scientific research route maps.",
+  "license": "Apache-2.0",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -15,6 +16,6 @@
   },
   "dependencies": {
     "playwright": "^1.61.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.3"
   }
 }

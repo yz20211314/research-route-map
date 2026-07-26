@@ -1,60 +1,106 @@
 # Research Route Map
 
-面向科研论文、基金申请和团队项目的 Codex Skill。它不会只根据一个题目自动编造完整技术路线，而是先参考相似研究提出少量关键问题，再通过 Mermaid 草图与用户确认研究逻辑，最终生成静态 HTML、高清 PNG 和自动 QA 报告。
+Research Route Map 是一个用于生成科研技术路线图的 Codex Skill。它适合论文开题、基金申请、课题论证和团队项目规划，重点不是把题目直接扩写成一张复杂大图，而是先帮助研究者厘清研究问题、方法条件、阶段产出和验证路径，再生成清晰、可确认、可交付的技术路线图。
 
-## 核心特点
+这个 Skill 的默认理解是“科研研究流程路线图”：从问题提出出发，组织研究任务、方法数据、验证指标和预期成果。对于真正带时间轴和里程碑的技术发展规划，也可以切换为技术路线图模式。
 
-- 先调研、后反问：轻量检索 2–3 条相似研究路线，第一轮询问 3 个核心问题，必要时再追问最多 2 个问题。
-- Mermaid 确认门：用不超过 10 个节点的紧凑草图确认阶段、方法和产出，支持通过自然语言持续修改。
-- 学术层级校准：根据本科、硕士、博士、教授/团队项目调整阶段数量、方法复杂度和验证深度。
-- 四类路线模式：研究流程、研究框架、技术发展路线图和研究对象流转图。
-- 自适应静态排版：动态生成可见列，每个表头对应每个阶段的独立单元格，阶段高度由真实内容决定。
-- 树形子项：包含 2–4 个子项时默认使用父节点、正交母线和独立子框。
-- 正交连线：所有流程线、支撑线和树线仅使用直线或 90° 折线，不使用贝塞尔曲线。
-- 单一渲染源：HTML 内嵌 SVG，PNG 从同一份 SVG 数据生成，避免两套渲染结果不一致。
-- 自动质量检查：检测文字裁切、节点重叠、边穿节点、列错位、曲线、低对比度、PNG 尺寸和无障碍信息。
+## What It Does
 
-## 工作流程
+- 根据研究题目轻量检索相似路线，提炼常见阶段、方法分叉和验证方式。
+- 通过最多 5 个问题收集关键信息，适配本科、硕士、博士、基金或团队项目的不同复杂度。
+- 先生成 Mermaid 草图，让用户直接确认或对话修改研究逻辑。
+- 在确认后生成静态 HTML、高清 PNG 和 QA 报告。
+- 使用自适应列布局，让研究阶段、研究思路、研究内容、方法数据等区域一一对应。
+- 对包含多个子项的节点使用树形结构，提升层级表达和可读性。
+- 全流程使用直线或 90 度正交折线，不使用曲线连线。
+
+## Core Framework
+
+Research Route Map 由四个核心层组成：
+
+| 层级 | 作用 |
+|---|---|
+| 研究定位 | 明确研究身份、用途、对象、问题边界和资源条件 |
+| 路线草图 | 用 Mermaid 表达阶段、方法、产出和关键依赖，作为用户确认门 |
+| 图模型 | 将确认后的草图转为结构化节点、边、证据和版式规格 |
+| 静态交付 | 输出可离线查看的 HTML、高清 PNG 和自动 QA 报告 |
+
+典型流程如下：
 
 ```mermaid
 flowchart LR
-  T["输入研究题目"] --> R["相似路线轻量检索"]
-  R --> Q["两轮自适应反问<br/>总数不超过5"]
+  T["输入研究题目"] --> R["相似路线参考"]
+  R --> Q["少量反问"]
   Q --> D["Mermaid 草图"]
-  D --> C{"用户确认？"}
-  C -->|修改| D
-  C -->|确认| E["深化证据与图模型"]
-  E --> V["规格验证与哈希锁"]
-  V --> H["静态 HTML"]
-  H --> P["2× 高清 PNG"]
-  P --> A["自动 QA"]
+  D --> C{"确认草图"}
+  C -->|继续修改| D
+  C -->|确认生成| G["结构化图模型"]
+  G --> H["静态 HTML"]
+  H --> P["高清 PNG"]
+  P --> A["QA 报告"]
 ```
 
-只有用户明确说“确认草图”或“按此生成”后，Skill 才会进入最终建图。若后续证据会改变阶段、方法或主流程，必须退回草图重新确认。
+Mermaid 草图是唯一的用户确认门。用户可以直接说“把 S2 的方法改为案例比较”“删除 S4”“把 S3 拆成并行任务”。每次修改后都会重新输出完整草图，并保持未受影响的节点 ID 稳定。
 
-## 路线模式
+## Route Modes
 
-| 模式 | 适用场景 | 主要结构 |
+| 模式 | 适用场景 | 常见内容 |
 |---|---|---|
-| `research-process` | 默认科研技术路线图 | 问题、任务、方法/数据、验证、阶段产出 |
-| `research-framework` | 理论或变量关系框架 | 理论、问题、方法、指标的并列或关系结构 |
-| `technology-roadmap` | 真正的技术发展路线 | 时间轴、能力缺口、KPI、里程碑、风险和决策门 |
-| `study-flow` | 样本、参与者或文献流转 | 纳入、排除、分配、随访或记录流转 |
+| `research-process` | 论文、开题、基金申请中的科研流程 | 问题、阶段任务、方法数据、验证、产出 |
+| `research-framework` | 理论框架、指标框架或概念关系 | 理论、变量、指标、机制和关系 |
+| `technology-roadmap` | 带时间轴的技术发展规划 | 能力目标、里程碑、KPI、风险和决策门 |
+| `study-flow` | 样本、参与者或文献记录流转 | 纳入、排除、分组、处理、随访或分析 |
 
-## 安装
+默认使用 `research-process`。如果用户明确提出技术成熟度、时间轴、能力缺口或里程碑，Skill 会更适合使用 `technology-roadmap`。
 
-### 1. 克隆到 Codex Skills 目录
+## Academic Calibration
+
+Skill 会根据研究层级调整路线深度，但不会替用户编造不可获得的方法或数据。
+
+| 层级 | 默认复杂度 |
+|---|---|
+| 本科 | 3 个左右阶段，单一主方法，基础比较或验证 |
+| 硕士 | 3-4 个阶段，主方法加对比或稳健性验证，突出一个创新点 |
+| 博士 | 4-5 个阶段，强调理论、机制或方法创新，可包含外部验证 |
+| 教授/团队 | 4-5 个工作包，强调并行任务、依赖关系、风险和资源配置 |
+
+用户已经确定的研究设计始终优先；学术层级只用于控制图的复杂度和验证深度。
+
+## Layout Style
+
+最终图采用静态 SVG 渲染，并导出为 HTML 和 PNG。新版研究流程图默认使用自适应列布局：
+
+- 有几个可见表头，就为每个阶段生成几个独立单元格。
+- 表头与下方内容列严格对齐。
+- 阶段高度由该行真实内容决定，避免大块空白。
+- 阶段标题只放在“研究内容与阶段输出”列顶部。
+- 研究思路、研究内容、方法数据和自定义 lane 分别绘制在独立列中。
+- 2-4 个子项默认绘制为“父框-正交母线-子框”的树形结构。
+
+连线遵循科研图的可读性原则：主流程使用实线；可选、假设或待验证关系可以使用带文字说明的虚线；所有连线只使用直线或 90 度折线。
+
+## Deliverables
+
+| 文件 | 内容 |
+|---|---|
+| `route-map.html` | 自包含静态 HTML，内嵌可访问 SVG |
+| `route-map.png` | 与 HTML 同源的高清 PNG，写入 300 dpi |
+| `qa-report.json` | 字号、溢出、重叠、连线、对比度和尺寸一致性检查 |
+
+内部还会维护问答档案、相似路线依据、草图修订和哈希锁，用于保证最终图与用户确认过的研究逻辑一致。
+
+## Installation
+
+Clone this repository into the Codex skills directory:
 
 ```bash
 git clone https://github.com/yz20211314/research-route-map.git \
   "${CODEX_HOME:-$HOME/.codex}/skills/research-route-map"
 ```
 
-重启 Codex 或重新加载 Skills 后即可使用。
+Restart Codex or reload skills after installation.
 
-### 2. 安装可选渲染依赖
-
-脚本主体只依赖 Node.js 内置模块。PNG 导出和浏览器级 QA 需要 Playwright 或 Sharp：
+Optional rendering dependencies:
 
 ```bash
 cd "${CODEX_HOME:-$HOME/.codex}/skills/research-route-map"
@@ -62,93 +108,55 @@ npm install
 npx playwright install chromium
 ```
 
-如果系统已安装 Chrome、Chromium 或 Edge，导出脚本会优先复用系统浏览器；浏览器不可用时会尝试使用 Sharp 从内嵌 SVG 栅格化。
+The core scripts use Node.js. Browser-based PNG export and visual QA use Playwright when available; SVG rasterization can fall back to Sharp.
 
-## 使用示例
+## Usage Examples
 
 ```text
 使用 $research-route-map 为“面向交通标志识别的暗光图像预处理研究”
 制定硕士论文技术路线。先反问我必要信息，再给 Mermaid 草图确认。
 ```
 
-也可以直接对草图提出修改：
-
 ```text
 把 S2 的数据来源改成自采配对数据。
 把 S3 拆成模型构建和消融实验两个并行任务。
-删除高成本的外部设备实验。
 确认草图，按此生成。
 ```
 
-## 最终交付物
+## Quality Checks
 
-| 文件 | 内容 |
-|---|---|
-| `route-map.html` | 自包含静态 HTML，内嵌可访问 SVG |
-| `route-map.png` | 与 SVG 同源的 2× 高清 PNG，写入 300 dpi |
-| `qa-report.json` | 几何、字体、连线、对比度、尺寸及一致性检查 |
+The QA pipeline checks:
 
-新项目还会在内部维护问答、相似路线、草图修订和哈希锁文件，但不会用长篇 Markdown 干扰用户确认。
+- text overflow and minimum font size;
+- node overlap and edge routing;
+- straight or orthogonal-only connector paths;
+- header-to-column alignment;
+- tree layout bounds;
+- contrast and grayscale readability;
+- HTML and PNG consistency;
+- alt text, long description and reading order.
 
-## 自适应版式
-
-新的 `research-process` 项目默认使用 design schema 1.3：
-
-- 先尝试 1240 px 宽，空间不足时切换为 1754 px；
-- 高度根据标题、表头、阶段内容、成果区和图例自动裁切；
-- 有几个可见表头，就为每个阶段生成几个独立单元格；
-- 即使某阶段在某个全局可见列中没有节点，也保留空单元格；
-- 阶段标题只显示在“研究内容与阶段输出”单元格顶部；
-- “研究思路”和“研究内容”不会合并成跨列表面容器；
-- 每个阶段所有单元格与左侧阶段多边形共享相同的 `y/height`。
-
-旧 schema 1.0–1.2 项目继续使用原有显式定位和固定 A4 兼容流程。
-
-## 运行测试
-
-需要 Node.js 20 或更高版本。
+Run the local test suite with:
 
 ```bash
 npm test
 ```
 
-也可以分别运行：
-
-```bash
-npm run test:draft
-npm run test:stages
-npm run test:static
-```
-
-测试覆盖：
-
-- 本科、硕士、博士、教授/团队等问答路径；
-- 3–6 阶段自适应布局；
-- 四种路线模式和三种方法栏模式；
-- 动态隐藏、增加列以及每阶段独立单元格；
-- 2–4 子项树形布局；
-- 直线、折线、方法母线和障碍绕行；
-- schema 1.0/1.1/1.2 兼容；
-- HTML/PNG 同源、300 dpi、窄屏和无障碍 QA；
-- 对曲线、列错位、无语义虚线、节点重叠和文字裁切的拒绝测试。
-
-## 项目结构
+## Project Structure
 
 ```text
 research-route-map/
-├── SKILL.md                 # Skill 主流程与强制规则
-├── agents/openai.yaml       # Codex 展示与默认提示
-├── assets/templates/        # 问答、检索和 Mermaid 草图模板
-├── references/              # schema、视觉语言、领域检查及标准依据
-└── scripts/                 # 验证、锁定、渲染、导出、QA 与测试
+├── SKILL.md
+├── agents/openai.yaml
+├── assets/templates/
+├── references/
+├── scripts/
+├── README.md
+└── LICENSE
 ```
 
-## 设计边界
+See [`references/`](references/) for schema definitions, route standards, visual language and domain checks.
 
-- 不开发或交付自由拖拽编辑器；草图修改通过与 AI 对话完成。
-- 相似路线只用于提出更准确的问题和参考结构，不替用户决定研究方法。
-- 学术层级只控制复杂度，不会覆盖用户明确给出的研究设计。
-- 领域规范用于适用性检查，不替代研究设计或科学证据。
-- 主流程使用实线；虚线只表达有文字或状态说明的可选、不确定关系。
+## License
 
-更完整的输入输出 schema、制图规范和规则来源见 [`references/`](references/)。
+Licensed under the [Apache License 2.0](LICENSE).
