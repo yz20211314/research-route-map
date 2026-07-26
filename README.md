@@ -9,7 +9,7 @@ Research Route Map 是一个用于生成科研技术路线图的 Codex Skill。�
 - 根据研究题目轻量检索相似路线，提炼常见阶段、方法分叉和验证方式。
 - 通过最多 5 个问题收集关键信息，适配本科、硕士、博士、基金或团队项目的不同复杂度。
 - 先生成 Mermaid 草图，让用户直接确认或对话修改研究逻辑。
-- 在确认后生成静态 HTML、高清 PNG 和 QA 报告。
+- 在确认后生成可编辑 SVG、静态 HTML、高清 PNG 和 QA 报告。
 - 使用自适应列布局，让研究阶段、研究思路、研究内容、方法数据等区域一一对应。
 - 对包含多个子项的节点使用树形结构，提升层级表达和可读性。
 - 全流程使用直线或 90 度正交折线，不使用曲线连线。
@@ -23,7 +23,7 @@ Research Route Map 由四个核心层组成：
 | 研究定位 | 明确研究身份、用途、对象、问题边界和资源条件 |
 | 路线草图 | 用 Mermaid 表达阶段、方法、产出和关键依赖，作为用户确认门 |
 | 图模型 | 将确认后的草图转为结构化节点、边、证据和版式规格 |
-| 静态交付 | 输出可离线查看的 HTML、高清 PNG 和自动 QA 报告 |
+| 同源交付 | 输出可编辑 SVG、离线 HTML、高清 PNG 和自动 QA 报告 |
 
 典型流程如下：
 
@@ -35,9 +35,11 @@ flowchart LR
   D --> C{"确认草图"}
   C -->|继续修改| D
   C -->|确认生成| G["结构化图模型"]
-  G --> H["静态 HTML"]
-  H --> P["高清 PNG"]
-  P --> A["QA 报告"]
+  G --> S["可编辑 SVG"]
+  S --> H["静态 HTML"]
+  S --> P["高清 PNG"]
+  H --> A["QA 报告"]
+  P --> A
 ```
 
 Mermaid 草图是唯一的用户确认门。用户可以直接说“把 S2 的方法改为案例比较”“删除 S4”“把 S3 拆成并行任务”。每次修改后都会重新输出完整草图，并保持未受影响的节点 ID 稳定。
@@ -68,7 +70,7 @@ Skill 会根据研究层级调整路线深度，但不会替用户编造不可�
 
 ## Layout Style
 
-最终图采用静态 SVG 渲染，并导出为 HTML 和 PNG。新版研究流程图默认使用自适应列布局：
+最终图先生成独立、可编辑的 SVG，再将完全相同的 SVG 嵌入 HTML 并导出 PNG。新版研究流程图默认使用自适应列布局：
 
 - 有几个可见表头，就为每个阶段生成几个独立单元格。
 - 表头与下方内容列严格对齐。
@@ -83,9 +85,14 @@ Skill 会根据研究层级调整路线深度，但不会替用户编造不可�
 
 | 文件 | 内容 |
 |---|---|
+| `route-map.svg` | 可在 WPS、PowerPoint、Illustrator、Inkscape 或 Figma 中继续编辑 |
 | `route-map.html` | 自包含静态 HTML，内嵌可访问 SVG |
-| `route-map.png` | 与 HTML 同源的高清 PNG，写入 300 dpi |
-| `qa-report.json` | 字号、溢出、重叠、连线、对比度和尺寸一致性检查 |
+| `route-map.png` | 与 SVG 同源的高清 PNG，写入 300 dpi |
+| `qa-report.json` | 字号、溢出、重叠、连线、兼容性和格式一致性检查 |
+
+SVG 保留真实文字、节点、连线和语义分组，不把文字转成轮廓路径。为了提高 Office/WPS 兼容性，图中只使用基础 SVG 图元，箭头由独立连线和三角形组成，不依赖脚本、外链、滤镜或 marker。
+
+在 WPS 或 PowerPoint 中可将 SVG 作为清晰的矢量图形插入、缩放和调整样式；是否能转换或拆分为单个形状取决于软件版本。在 Illustrator、Inkscape 或 Figma 中，可按稳定分组直接修改节点、文字、连线和颜色。
 
 内部还会维护问答档案、相似路线依据、草图修订和哈希锁，用于保证最终图与用户确认过的研究逻辑一致。
 
@@ -133,7 +140,8 @@ The QA pipeline checks:
 - header-to-column alignment;
 - tree layout bounds;
 - contrast and grayscale readability;
-- HTML and PNG consistency;
+- editable SVG structure and Office-safe primitives;
+- SVG, HTML and PNG consistency;
 - alt text, long description and reading order.
 
 Run the local test suite with:

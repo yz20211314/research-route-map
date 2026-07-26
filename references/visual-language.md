@@ -123,12 +123,16 @@ outcome   #EAF4E2
 - Test grayscale; keep labels and boundaries sufficient without hue.
 - Use black/dark text rather than colored text on light fills.
 
-## Static HTML and PNG
+## Editable SVG, static HTML, and PNG
 
+- Produce `route-map.svg` as the canonical rendering source and embed the exact same SVG string in HTML.
+- Use SVG 1.1 basic primitives with stable semantic group IDs for layers, stages, nodes, and edges.
+- Preserve text as `<text>/<tspan>` elements with local font fallbacks; do not outline text or embed fonts.
+- Use explicit connector paths and polygon arrowheads instead of marker arrowheads.
+- Do not use scripts, remote resources, `foreignObject`, filters, gradients, patterns, images, or CSS URL references.
 - HTML contains one embedded SVG and no editor scripts or remote runtime.
 - Add an SVG `<title>` and `<desc>`, an HTML summary, and a structured long description in graph reading order.
-- Text remains real SVG text, not outlined paths.
-- The PNG is derived from the same embedded SVG.
+- The PNG is derived from the standalone SVG.
 - No shadows, gradients, watermarks, or decorative density.
 
 ## QA rejection criteria
@@ -149,4 +153,7 @@ Reject if:
 - an adaptive row has more than 12 px non-content vertical slack;
 - a tree line is curved, uses an arrowhead, crosses text, or a child label is clipped;
 - HTML lacks accessible title/description/reading order;
-- HTML contains editor/runtime code.
+- HTML contains editor/runtime code;
+- standalone SVG differs from the HTML-embedded SVG or the PNG source hash;
+- editable text, semantic groups, or the required Office-compatible SVG declaration is missing;
+- SVG contains scripts, external references, `foreignObject`, filters, gradients, patterns, images, marker arrowheads, or CSS URL references.

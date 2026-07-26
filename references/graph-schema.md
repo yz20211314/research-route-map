@@ -222,7 +222,7 @@ The adaptive layout owns all geometry:
 
 Do not include `canvas`, `column_headers`, lane coordinates, `placements`, `group_placements`, `visual_group_placements`, or `edge_paths` in a 1.3 adaptive input. These appear only in `render-layout.json` after resolution.
 
-`render-layout.json` records `regions`, `headers`, `region_cells`, `group_rows`, `visual_groups`, `stage_boxes`, `node_anchors`, `node_layouts`, `child_layouts`, `tree_routes`, `content_bbox`, the resolved canvas, and the resolved PNG target. In adaptive mode, `visual_groups[group_id]` points exactly to the primary content cell; `group_rows` records occupancy only and is not a visible merged container. Rendering, validation, and QA consume the same resolved geometry.
+`render-layout.json` records `regions`, `headers`, `region_cells`, `group_rows`, `visual_groups`, `stage_boxes`, `node_anchors`, `node_layouts`, `child_layouts`, `tree_routes`, `content_bbox`, the resolved canvas, the resolved PNG target, `standalone_svg_file`, `standalone_svg_sha256`, `editable_svg`, and `semantic_layers`. In adaptive mode, `visual_groups[group_id]` points exactly to the primary content cell; `group_rows` records occupancy only and is not a visible merged container. Rendering, validation, SVG/HTML export, PNG export, and QA consume the same resolved geometry.
 
 ## Legacy explicit static design 1.2
 

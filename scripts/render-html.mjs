@@ -92,6 +92,48 @@ const borderWidth = design.border_width ?? 1.4;
 const accentBorderWidth = design.accent_border_width ?? 2.4;
 const stageHeaderHeight = design.stage_header_height ?? Math.max(34, fonts.stage * 1.75);
 const stageColors = ['#C9DCF4', '#C8E5E2', '#F5DDA0', '#DDC6EE', '#F2C5B3', '#CDE5BC'];
+const editableFontFamily = 'PingFang SC,Microsoft YaHei,Noto Sans CJK SC,Source Han Sans SC,Arial,sans-serif';
+const svgId = (prefix, value) => `${prefix}-${String(value ?? '')
+  .normalize('NFKD')
+  .replace(/[^A-Za-z0-9_.-]+/g, '-')
+  .replace(/^-+|-+$/g, '') || 'item'}`;
+const arrowheadSvg = (points, {
+  fill = design.theme.ink,
+  size = 8,
+  className = 'editable-arrowhead'
+} = {}) => {
+  if (!Array.isArray(points) || points.length < 2) return '';
+  const tip = points.at(-1);
+  let previousIndex = points.length - 2;
+  while (
+    previousIndex >= 0
+    && Math.abs(points[previousIndex].x - tip.x) < .01
+    && Math.abs(points[previousIndex].y - tip.y) < .01
+  ) previousIndex -= 1;
+  if (previousIndex < 0) return '';
+  const previous = points[previousIndex];
+  const horizontal = Math.abs(tip.x - previous.x) >= Math.abs(tip.y - previous.y);
+  const direction = horizontal
+    ? Math.sign(tip.x - previous.x)
+    : Math.sign(tip.y - previous.y);
+  if (!direction) return '';
+  const half = size * .52;
+  const base = horizontal
+    ? {x: tip.x - direction * size, y: tip.y}
+    : {x: tip.x, y: tip.y - direction * size};
+  const triangle = horizontal
+    ? [
+      tip,
+      {x: base.x, y: base.y - half},
+      {x: base.x, y: base.y + half}
+    ]
+    : [
+      tip,
+      {x: base.x - half, y: base.y},
+      {x: base.x + half, y: base.y}
+    ];
+  return `<polygon class="${esc(className)}" data-editable-part="arrowhead" points="${triangle.map((point) => `${round(point.x)},${round(point.y)}`).join(' ')}" fill="${fill}"/>`;
+};
 
 const groups = [...graph.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 const defaultGroupBox = (group, index) => {
@@ -135,7 +177,7 @@ const textSvg = ({
 }) => {
   const lines = splitText(text, Math.max(2, maxChars), maxLines);
   const start = y - (lines.length - 1) * lineHeight / 2;
-  return `<text${className ? ` class="${esc(className)}"` : ''} x="${round(x)}" y="${round(start)}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Noto Sans CJK SC,Source Han Sans SC,PingFang SC,Microsoft YaHei,Arial,sans-serif" font-size="${round(fontSize)}" font-weight="${weight}" fill="${fill}">${lines.map((line, index) => `<tspan x="${round(x)}" dy="${index ? round(lineHeight) : 0}">${esc(line)}</tspan>`).join('')}</text>`;
+  return `<text${className ? ` class="${esc(className)}"` : ''} data-editable-text="true" x="${round(x)}" y="${round(start)}" text-anchor="${anchor}" dominant-baseline="middle" font-family="${editableFontFamily}" font-size="${round(fontSize)}" font-weight="${weight}" fill="${fill}">${lines.map((line, index) => `<tspan x="${round(x)}" dy="${index ? round(lineHeight) : 0}">${esc(line)}</tspan>`).join('')}</text>`;
 };
 
 const title = design.title ?? graph.meta.title;
@@ -167,7 +209,8 @@ const headerFill = (header) => {
   return '#EEF2F7';
 };
 const columnHeadersSvg = columnHeaders.map((header) => {
-  return `<g class="column-header" data-region="${esc(header.id ?? header.lane)}"${header.lane ? ` data-lane="${esc(header.lane)}"` : ''}>
+  const regionId = header.id ?? header.lane;
+  return `<g id="${svgId('header', regionId)}" class="column-header" data-region="${esc(regionId)}"${header.lane ? ` data-lane="${esc(header.lane)}"` : ''}>
     <rect x="${round(header.x)}" y="${round(header.y)}" width="${round(header.w)}" height="${round(header.h)}" rx="4" fill="${headerFill(header)}" stroke="#475569" stroke-width="${borderWidth}"/>
     ${textSvg({text: header.label, x: header.x + header.w / 2, y: header.y + header.h / 2, fontSize: fonts.stage, weight: 750, maxChars: Math.floor(header.w / fonts.stage)})}
   </g>`;
@@ -211,14 +254,14 @@ const groupSvg = groups.map((group, index) => {
         if (!cell) return '';
         return `<rect class="region-cell region-${esc(region.kind)}" data-group-id="${esc(group.id)}" data-region-id="${esc(region.id)}"${region.lane ? ` data-lane="${esc(region.lane)}"` : ''} x="${round(cell.x)}" y="${round(cell.y)}" width="${round(cell.width)}" height="${round(cell.height)}" rx="7" fill="${style.fill}" stroke="${style.stroke}" stroke-width="${borderWidth}"/>`;
       }).join('');
-    return `<g class="stage-group adaptive-stage-group" data-group-id="${esc(group.id)}">
+    return `<g id="${svgId('stage', group.id)}" class="stage-group adaptive-stage-group" data-group-id="${esc(group.id)}">
       ${cellSvg}
       <rect class="stage-header" data-region-id="${esc(primaryRegionId)}" x="${round(box.x + 12)}" y="${round(box.y + 8)}" width="${round(box.width - 24)}" height="${round(stageHeaderHeight)}" rx="4" fill="${style.header}" stroke="#475569" stroke-width="${borderWidth}"/>
       ${textSvg({text: group.label, x: box.x + box.width / 2, y: box.y + 8 + stageHeaderHeight / 2, fontSize: fonts.stage, weight: 750, maxChars: Math.max(12, Math.floor((box.width - 32) / fonts.stage)), maxLines: 2, className: 'stage-header-label'})}
       ${rail}
     </g>`;
   }
-  return `<g class="stage-group" data-group-id="${esc(group.id)}">
+  return `<g id="${svgId('stage', group.id)}" class="stage-group" data-group-id="${esc(group.id)}">
     <rect x="${round(box.x)}" y="${round(box.y)}" width="${round(box.width)}" height="${round(box.height)}" rx="7" fill="${style.fill}" stroke="${style.stroke}" stroke-width="${borderWidth}"/>
     <rect class="stage-header" x="${round(box.x + 12)}" y="${round(box.y + 8)}" width="${round(box.width - 24)}" height="${round(stageHeaderHeight)}" rx="4" fill="${style.header}" stroke="#475569" stroke-width="${borderWidth}"/>
     ${textSvg({text: group.label, x: box.x + box.width / 2, y: box.y + 8 + stageHeaderHeight / 2, fontSize: fonts.stage, weight: 750, maxChars: Math.max(12, Math.floor((box.width - 32) / fonts.stage)), maxLines: 2})}
@@ -244,7 +287,7 @@ const edgeSvg = renderableEdges.map((edge) => {
   const muted = ['support', 'feedback'].includes(edge.kind) || dashed;
   const stroke = muted ? design.theme.muted : design.theme.ink;
   const width = edge.kind === 'support' ? 1.2 : edge.kind === 'feedback' ? 1.4 : 1.8;
-  const marker = ['parallel'].includes(edge.kind) ? '' : ` marker-end="url(#${muted ? 'arrow-muted' : 'arrow'})"`;
+  const hasArrow = !['parallel'].includes(edge.kind);
   const dash = dashed ? ' stroke-dasharray="8 6"' : '';
   const labelPoint = longestSegmentMidpoint(route.points);
   const label = edge.label?.trim() ? (() => {
@@ -268,8 +311,9 @@ const edgeSvg = renderableEdges.map((edge) => {
     source: route.source,
     crossed_nodes: crossed
   });
-  return `<g class="graph-edge edge-${esc(edge.kind)}${dashed ? ' edge-dashed' : ''}" data-edge-id="${esc(edge.id)}">
-    <path d="${pointsToPath(route.points)}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="square" stroke-linejoin="miter"${dash}${marker}/>
+  return `<g id="${svgId('edge', edge.id)}" class="graph-edge edge-${esc(edge.kind)}${dashed ? ' edge-dashed' : ''}" data-edge-id="${esc(edge.id)}">
+    <path data-editable-part="connector" d="${pointsToPath(route.points)}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="square" stroke-linejoin="miter"${dash}/>
+    ${hasArrow ? arrowheadSvg(route.points, {fill: stroke, size: Math.max(6.5, width * 4.4)}) : ''}
     ${label}
   </g>`;
 }).join('');
@@ -283,7 +327,10 @@ const orthogonalBetweenBoxes = (from, to, id, kind) => {
     ? [p, q]
     : [p, {x: p.x, y: (p.y + q.y) / 2}, {x: q.x, y: (p.y + q.y) / 2}, q];
   structuralRoutes.push({id, kind, points, segments: points.length - 1, dashed: false, crossed_nodes: []});
-  connectorSvg.push(`<path class="structural-edge ${kind}" d="${pointsToPath(points)}" fill="none" stroke="${design.theme.ink}" stroke-width="2.8" stroke-linejoin="miter" marker-end="url(#arrow)"/>`);
+  connectorSvg.push(`<g id="${svgId('edge', id)}" class="structural-edge-group ${kind}" data-edge-id="${esc(id)}">
+    <path class="structural-edge ${kind}" data-editable-part="connector" d="${pointsToPath(points)}" fill="none" stroke="${design.theme.ink}" stroke-width="2.8" stroke-linejoin="miter"/>
+    ${arrowheadSvg(points, {fill: design.theme.ink, size: 9})}
+  </g>`);
 };
 
 if (design.route_mode === 'research-process' && design.stage_connectors !== false) {
@@ -301,14 +348,17 @@ if (design.route_mode === 'research-process' && design.rail_connectors !== false
     const to = adaptiveLayout?.stage_boxes?.[groups[index + 1].id] ?? groupRows[groups[index + 1].id];
     const points = [{x, y: from.y + from.height}, {x, y: to.y}];
     structuralRoutes.push({id: `rail-${index + 1}`, kind: 'rail-connector', points, segments: 1, dashed: false, crossed_nodes: []});
-    connectorSvg.push(`<path class="structural-edge rail-connector" d="${pointsToPath(points)}" fill="none" stroke="#475569" stroke-width="2.8" marker-end="url(#arrow)"/>`);
+    connectorSvg.push(`<g id="${svgId('edge', `rail-${index + 1}`)}" class="structural-edge-group rail-connector" data-edge-id="rail-${index + 1}">
+      <path class="structural-edge rail-connector" data-editable-part="connector" d="${pointsToPath(points)}" fill="none" stroke="#475569" stroke-width="2.8"/>
+      ${arrowheadSvg(points, {fill: '#475569', size: 9})}
+    </g>`);
   }
 }
 
 const childLayouts = {...(adaptiveLayout?.child_layouts ?? {})};
 const treeRoutes = adaptiveLayout?.tree_routes ?? [];
 const treeRouteSvg = treeRoutes.map((route) => (
-  `<path class="tree-edge structural-edge tree-containment" data-tree-route-id="${esc(route.id)}" d="${pointsToPath(route.points)}" fill="none" stroke="#64748B" stroke-width="1.1" stroke-linecap="square" stroke-linejoin="miter"/>`
+  `<path id="${svgId('tree-edge', route.id)}" class="tree-edge structural-edge tree-containment" data-tree-route-id="${esc(route.id)}" data-editable-part="containment" d="${pointsToPath(route.points)}" fill="none" stroke="#64748B" stroke-width="1.1" stroke-linecap="square" stroke-linejoin="miter"/>`
 )).join('');
 const nodeSvg = graph.nodes.filter((node) => visible.has(node.id)).map((node) => {
   const box = bounds[node.id];
@@ -348,7 +398,7 @@ const nodeSvg = graph.nodes.filter((node) => visible.has(node.id)).map((node) =>
       const width = fonts.legend * 2.5;
       return `<g class="status-badge"><rect x="${round(parent.x + parent.w - width - 3)}" y="${round(parent.y + 3)}" width="${round(width)}" height="${round(fonts.legend * 1.5)}" rx="2" fill="#FFFFFF" stroke="#64748B" stroke-width=".8"/>${textSvg({text, x: parent.x + parent.w - width / 2 - 3, y: parent.y + 3 + fonts.legend * .75, fontSize: fonts.legend, weight: 650, maxChars: 2, maxLines: 1})}</g>`;
     })() : '';
-    return `<g class="route-node tree-node" data-node-id="${esc(node.id)}" data-child-layout="tree">
+    return `<g id="${svgId('node', node.id)}" class="route-node tree-node" data-node-id="${esc(node.id)}" data-child-layout="tree">
       <g class="tree-part tree-parent">${parentShape}${textSvg({text: node.label, x: parent.x + parent.w / 2, y: parent.y + parent.h / 2, fontSize, weight: isOutput ? 800 : 650, fill: colors.text, maxChars: parentMaxChars, maxLines: 2})}${badge}</g>
       ${childrenSvg}
     </g>`;
@@ -447,7 +497,7 @@ const nodeSvg = graph.nodes.filter((node) => visible.has(node.id)).map((node) =>
     const width = fonts.legend * 2.5;
     return `<g class="status-badge"><rect x="${round(box.x + box.w - width - 3)}" y="${round(box.y + 3)}" width="${round(width)}" height="${round(fonts.legend * 1.5)}" rx="2" fill="#FFFFFF" stroke="#64748B" stroke-width=".8"/>${textSvg({text, x: box.x + box.w - width / 2 - 3, y: box.y + 3 + fonts.legend * .75, fontSize: fonts.legend, weight: 650, maxChars: 2, maxLines: 1})}</g>`;
   })() : '';
-  return `<g class="route-node" data-node-id="${esc(node.id)}">${shape}${content}${badge}</g>`;
+  return `<g id="${svgId('node', node.id)}" class="route-node" data-node-id="${esc(node.id)}">${shape}${content}${badge}</g>`;
 }).join('');
 
 const outcomeLayout = (() => {
@@ -467,7 +517,7 @@ const outcomeLayout = (() => {
     const w = item.w ?? itemW;
     const h = item.h ?? itemH;
     itemLayouts.push({x, y, w, h, label: item.label, kind: item.kind ?? 'outcome'});
-    return `<g class="outcome-item">
+    return `<g id="${svgId('outcome', item.id ?? `${index + 1}`)}" class="outcome-item">
       <rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="4" fill="#FFFFFF" stroke="#475569" stroke-width="${borderWidth}"/>
       ${textSvg({text: item.label, x: x + w / 2, y: y + h / 2 - (item.sublabel ? fonts.node * .65 : 0), fontSize: fonts.node, weight: 750, maxChars: Math.max(5, Math.floor((w - 14) / fonts.node)), maxLines: 2})}
       ${item.sublabel ? textSvg({text: item.sublabel, x: x + w / 2, y: y + h / 2 + fonts.secondary * 1.1, fontSize: fonts.secondary, weight: 400, fill: design.theme.muted, maxChars: Math.max(6, Math.floor((w - 14) / fonts.secondary)), maxLines: 2}) : ''}
@@ -496,25 +546,29 @@ const legend = design.show_legend === false ? '' : textSvg({
   anchor: 'end'
 });
 
-const svg = `<svg id="route-map-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="route-map-title route-map-desc">
+const semanticLayers = [
+  'background-title',
+  'headers',
+  'stages',
+  'connectors',
+  'nodes',
+  'outcomes',
+  'legend'
+];
+const svg = `<svg id="route-map-svg" xmlns="http://www.w3.org/2000/svg" version="1.1" xml:space="preserve" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="route-map-title route-map-desc" data-editable-svg="office-compatible">
   <title id="route-map-title">${esc(title)}</title>
   <desc id="route-map-desc">${esc(description)}</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="${design.theme.ink}"/></marker>
-    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="${design.theme.muted}"/></marker>
-  </defs>
-  <rect width="${W}" height="${H}" fill="${design.theme.paper}"/>
-  <rect x="28" y="18" width="${W - 56}" height="56" rx="5" fill="${design.theme.theory}" stroke="#334155" stroke-width="${borderWidth}"/>
-  ${textSvg({text: title, x: W / 2, y: 46, fontSize: fonts.title, weight: 800, maxChars: Math.max(16, Math.floor((W - 90) / fonts.title)), maxLines: 2})}
-  ${legacyLanesSvg}
-  ${columnHeadersSvg}
-  ${groupSvg}
-  ${edgeSvg}
-  ${connectorSvg.join('')}
-  ${treeRouteSvg}
-  ${nodeSvg}
-  ${outcomeLayout.svg}
-  ${legend}
+  <g id="layer-background-title" data-layer="background-title">
+    <rect width="${W}" height="${H}" fill="${design.theme.paper}"/>
+    <rect x="28" y="18" width="${W - 56}" height="56" rx="5" fill="${design.theme.theory}" stroke="#334155" stroke-width="${borderWidth}"/>
+    ${textSvg({text: title, x: W / 2, y: 46, fontSize: fonts.title, weight: 800, maxChars: Math.max(16, Math.floor((W - 90) / fonts.title)), maxLines: 2})}
+  </g>
+  <g id="layer-headers" data-layer="headers">${legacyLanesSvg}${columnHeadersSvg}</g>
+  <g id="layer-stages" data-layer="stages">${groupSvg}</g>
+  <g id="layer-connectors" data-layer="connectors">${edgeSvg}${connectorSvg.join('')}${treeRouteSvg}</g>
+  <g id="layer-nodes" data-layer="nodes">${nodeSvg}</g>
+  <g id="layer-outcomes" data-layer="outcomes">${outcomeLayout.svg}</g>
+  <g id="layer-legend" data-layer="legend">${legend}</g>
 </svg>`;
 
 const readingOrder = graphReadingOrder(graph).filter((node) => visible.has(node.id));
@@ -539,7 +593,7 @@ const html = `<!doctype html>
   <title>${esc(title)}</title>
   <style>
     *{box-sizing:border-box}
-    html,body{margin:0;background:#E5E7EB;color:#1F2937;font-family:"Noto Sans CJK SC","Source Han Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+    html,body{margin:0;background:#E5E7EB;color:#1F2937;font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",Arial,sans-serif}
     body{padding:0}
     #route-map{width:${W}px;height:${H}px;margin:0 auto;background:#fff}
     #route-map-svg{display:block;width:${W}px;height:${H}px;max-width:none}
@@ -569,6 +623,7 @@ const html = `<!doctype html>
 </body>
 </html>`;
 
+fs.writeFileSync(path.join(project, 'route-map.svg'), svg);
 fs.writeFileSync(path.join(project, 'route-map.html'), html);
 const paletteChecks = {
   ink_on_paper: contrastRatio(design.theme.ink, design.theme.paper),
@@ -603,8 +658,20 @@ writeJsonFile(project, 'render-layout.json', {
   content_bbox: adaptiveLayout?.content_bbox ?? null,
   typography_pt: design.typography_pt,
   palette_checks: paletteChecks,
+  standalone_svg_file: 'route-map.svg',
+  standalone_svg_sha256: sha256(svg),
   embedded_svg_sha256: sha256(svg),
+  editable_svg: {
+    office_compatible: true,
+    svg_version: '1.1',
+    text_as_text: true,
+    external_resources: false,
+    scripts: false,
+    foreign_object: false,
+    marker_arrowheads: false
+  },
+  semantic_layers: semanticLayers,
   accessible_description: description,
   static_only: true
 });
-console.log(`Wrote static ${path.join(project, 'route-map.html')}`);
+console.log(`Wrote editable ${path.join(project, 'route-map.svg')} and static ${path.join(project, 'route-map.html')}`);

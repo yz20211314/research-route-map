@@ -1,6 +1,6 @@
 ---
 name: research-route-map
-description: Research a scientific topic, compare two to three analogous routes, ask at most five adaptive questions, draft a compact Mermaid confirmation route, then generate a static HTML and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with evidence provenance and QA.
+description: Research a scientific topic, compare two to three analogous routes, ask at most five adaptive questions, draft a compact Mermaid confirmation route, then generate an editable SVG, static HTML, and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with evidence provenance and QA.
 ---
 
 # Research Route Map
@@ -34,11 +34,11 @@ When “技术路线图” is ambiguous, use `research-process` and record the a
 
 ## Non-negotiable sequence
 
-`Topic → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → static HTML → PNG → QA`
+`Topic → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
 
 For a new project, Mermaid is the only user-facing confirmation gate. Do not create `research_route_framework.md`.
 
-Do not create `research_graph.json`, `design_spec.json`, HTML, or PNG while the Mermaid draft is unconfirmed. Legacy projects that already use `research_route_framework.md` and `framework_lock.json` remain supported; do not migrate them in place unless asked.
+Do not create `research_graph.json`, `design_spec.json`, SVG, HTML, or PNG while the Mermaid draft is unconfirmed. Legacy projects that already use `research_route_framework.md` and `framework_lock.json` remain supported; do not migrate them in place unless asked.
 
 ## 1. Interpret supplied context
 
@@ -189,13 +189,15 @@ Run in order:
 4. `node scripts/export-image.mjs <project>`
 5. `node scripts/visual-qa.mjs <project>`
 
-The HTML is static and self-contained with one embedded accessible SVG. The PNG derives from that same SVG:
+Write `route-map.svg` as an editable, self-contained SVG 1.1 artifact, and embed that exact SVG string in the static HTML. Preserve real `<text>/<tspan>` elements and stable semantic groups for layers, stages, nodes, and edges. Use basic Office-compatible SVG primitives only; do not use scripts, remote resources, `foreignObject`, filters, gradients, patterns, images, marker arrowheads, or embedded fonts.
+
+The standalone SVG is the canonical rendering source. The HTML embeds it unchanged and the PNG derives from it:
 
 - adaptive schema 1.3: the resolved SVG at exactly 2× width and height, with 300 dpi metadata;
 - legacy explicit portrait 1.2: `2480 × 3508`;
 - legacy explicit landscape 1.2: `3508 × 2480`.
 
-Playwright may capture the route-map element. If unavailable, extract and rasterize the embedded SVG at 300 dpi. Repair presentation only; never change confirmed scientific logic to pass layout QA.
+Playwright may capture the standalone SVG element. If unavailable, rasterize `route-map.svg` directly at 300 dpi. Repair presentation only; never change confirmed scientific logic to pass layout QA.
 
 ## Connector and visual rules
 
@@ -227,11 +229,12 @@ Playwright may capture the route-map element. If unavailable, extract and raster
 | `design_spec.json` / `design_spec.md` | Static visual contract |
 | `validation-report.json` | Graph/design/source checks |
 | `spec_lock.json` | Confirmed source, graph, design, and validation hashes |
+| `route-map.svg` | Editable Office-compatible standalone SVG |
 | `route-map.html` | Self-contained static HTML |
 | `route-map.png` | 2× 300 dpi adaptive image, or legacy A4 image |
 | `qa-report.json` | Structure, line routing, accessibility, and output QA |
 
-Keep intermediate files in the working project. Deliver only `route-map.html`, `route-map.png`, and `qa-report.json` unless the user asks for evidence or machine-readable specifications. Do not deliver a standalone SVG by default.
+Keep intermediate files in the working project. Deliver `route-map.svg`, `route-map.html`, `route-map.png`, and `qa-report.json` unless the user asks for evidence or machine-readable specifications.
 
 ## Ownership boundaries
 

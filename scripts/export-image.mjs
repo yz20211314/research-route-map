@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {readJsonFile, writeJsonFile} from './lib/route-utils.mjs';
+import {readJsonFile, sha256, writeJsonFile} from './lib/route-utils.mjs';
 
 const project = process.argv[2];
 if (!project) {
@@ -11,12 +11,25 @@ if (!project) {
 }
 
 const htmlPath = path.resolve(project, 'route-map.html');
+const svgPath = path.resolve(project, 'route-map.svg');
 const pngPath = path.resolve(project, 'route-map.png');
-if (!fs.existsSync(htmlPath)) {
-  console.error(`Missing ${htmlPath}. Run render-html.mjs first.`);
+if (!fs.existsSync(htmlPath) || !fs.existsSync(svgPath)) {
+  console.error(`Missing route-map.html or route-map.svg in ${path.resolve(project)}. Run render-html.mjs first.`);
   process.exit(1);
 }
 const layout = readJsonFile(project, 'render-layout.json');
+const svg = fs.readFileSync(svgPath, 'utf8');
+const html = fs.readFileSync(htmlPath, 'utf8');
+const embeddedMatch = html.match(/<svg id="route-map-svg"[\s\S]*?<\/svg>/);
+const sourceSvgSha256 = sha256(svg);
+if (
+  !embeddedMatch
+  || embeddedMatch[0] !== svg
+  || layout.standalone_svg_sha256 !== sourceSvgSha256
+) {
+  console.error('SVG export is blocked: route-map.svg, embedded HTML SVG, and render-layout.json are not synchronized.');
+  process.exit(1);
+}
 const target = layout.target_png ?? {
   width: layout.canvas.width * 2,
   height: layout.canvas.height * 2,
@@ -79,9 +92,9 @@ if (process.env.RRM_FORCE_SVG_FALLBACK === '1') {
       viewport: {width: layout.canvas.width, height: layout.canvas.height},
       deviceScaleFactor: 2
     });
-    await page.goto(pathToFileURL(htmlPath).href, {waitUntil: 'load'});
+    await page.goto(pathToFileURL(svgPath).href, {waitUntil: 'load'});
     await page.evaluate(() => document.fonts?.ready);
-    await page.locator('#route-map').screenshot({path: pngPath, animations: 'disabled'});
+    await page.locator('#route-map-svg').screenshot({path: pngPath, animations: 'disabled'});
     await browser.close();
     mode = systemBrowser ? 'playwright-system-chromium' : 'playwright-bundled-chromium';
   } catch (error) {
@@ -99,23 +112,12 @@ if (!mode) {
     console.error('Unable to export PNG: Chromium and sharp are unavailable.');
     process.exit(1);
   }
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const match = html.match(/<svg id="route-map-svg"[\s\S]*?<\/svg>/);
-  if (!match) {
-    writeJsonFile(project, 'export-report.json', {
-      mode: 'failed',
-      error: browserDetail,
-      fallback_error: 'embedded route-map SVG was not found'
-    });
-    console.error('Unable to export PNG: embedded route-map SVG was not found.');
-    process.exit(1);
-  }
-  await sharpModule(Buffer.from(match[0]), {density: target.dpi})
+  await sharpModule(Buffer.from(svg), {density: target.dpi})
     .resize(target.width, target.height, {fit: 'fill'})
     .withMetadata({density: target.dpi})
     .png({compressionLevel: 9})
     .toFile(pngPath);
-  mode = 'embedded-svg-fallback';
+  mode = 'standalone-svg-fallback';
 }
 
 const output = await normalizePng();
@@ -125,7 +127,10 @@ const report = {
   output: output ?? {width: target.width, height: target.height, density: target.dpi},
   browser_executable: systemBrowser ?? null,
   browser_error: browserDetail,
-  same_embedded_svg_source: true
+  source_svg_file: 'route-map.svg',
+  source_svg_sha256: sourceSvgSha256,
+  same_svg_source: true,
+  same_embedded_svg_source: embeddedMatch[0] === svg
 };
 writeJsonFile(project, 'export-report.json', report);
 console.log(`Exported ${pngPath} via ${mode} (${target.width} × ${target.height})`);

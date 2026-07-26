@@ -20,7 +20,7 @@ if (!project) {
   process.exit(2);
 }
 
-const required = ['render-layout.json', 'research_graph.json', 'design_spec.json', 'route-map.html', 'route-map.png', 'export-report.json'];
+const required = ['render-layout.json', 'research_graph.json', 'design_spec.json', 'route-map.svg', 'route-map.html', 'route-map.png', 'export-report.json'];
 for (const name of required) {
   if (!fs.existsSync(path.join(project, name))) {
     console.error(`Missing ${name}.`);
@@ -33,10 +33,15 @@ const graphInput = JSON.parse(fs.readFileSync(path.join(project, 'research_graph
 const designInput = JSON.parse(fs.readFileSync(path.join(project, 'design_spec.json'), 'utf8'));
 const graph = normalizeGraph(graphInput);
 const design = normalizeDesign(designInput, graph);
+const svg = fs.readFileSync(path.join(project, 'route-map.svg'), 'utf8');
 const html = fs.readFileSync(path.join(project, 'route-map.html'), 'utf8');
 const exportReport = JSON.parse(fs.readFileSync(path.join(project, 'export-report.json'), 'utf8'));
 const errors = [];
 const warnings = [];
+const svgId = (prefix, value) => `${prefix}-${String(value ?? '')
+  .normalize('NFKD')
+  .replace(/[^A-Za-z0-9_.-]+/g, '-')
+  .replace(/^-+|-+$/g, '') || 'item'}`;
 
 const boxes = Object.entries(layout.bounds ?? {});
 const overlaps = (a, b) => (
@@ -231,14 +236,16 @@ if (design.method_rail_mode !== 'mapped' && (layout.edge_routes ?? []).some((rou
 const svgMatch = html.match(/<svg id="route-map-svg"[\s\S]*?<\/svg>/);
 if (!svgMatch) errors.push('HTML does not contain the embedded route-map SVG');
 else {
+  if (svgMatch[0] !== svg) errors.push('standalone SVG differs from the HTML embedded SVG');
+  if (sha256(svg) !== layout.standalone_svg_sha256) errors.push('standalone SVG hash differs from render-layout.json');
   if (sha256(svgMatch[0]) !== layout.embedded_svg_sha256) errors.push('embedded SVG hash differs from render-layout.json');
-  const connectorPathTags = [...svgMatch[0].matchAll(/<path\b[^>]*class="[^"]*(?:graph-edge|structural-edge)[^"]*"[^>]*>/g)].map((match) => match[0]);
-  const allPathData = [...svgMatch[0].matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]);
+  const connectorPathTags = [...svg.matchAll(/<path\b[^>]*class="[^"]*(?:graph-edge|structural-edge)[^"]*"[^>]*>/g)].map((match) => match[0]);
+  const allPathData = [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]);
   if (allPathData.some((value) => /[CQSTA]/i.test(value))) errors.push('embedded SVG contains a curve or arc path command');
   if (connectorPathTags.some((tag) => /[CQSTA]/i.test(tag.match(/\bd="([^"]+)"/)?.[1] ?? ''))) {
     errors.push('connector path contains a curve or arc command');
   }
-  const treePathTags = [...svgMatch[0].matchAll(/<path\b[^>]*class="[^"]*tree-edge[^"]*"[^>]*>/g)].map((match) => match[0]);
+  const treePathTags = [...svg.matchAll(/<path\b[^>]*class="[^"]*tree-edge[^"]*"[^>]*>/g)].map((match) => match[0]);
   if (treePathTags.some((tag) => /\bmarker-(?:start|mid|end)=/.test(tag))) {
     errors.push('tree containment line must not use arrow markers');
   }
@@ -247,14 +254,66 @@ else {
   }
 }
 
-if (!/<title id="route-map-title">/.test(html) || !/<desc id="route-map-desc">/.test(html)) {
-  errors.push('embedded SVG lacks accessible title/description');
+if (!/<title id="route-map-title">/.test(svg) || !/<desc id="route-map-desc">/.test(svg)) {
+  errors.push('SVG lacks accessible title/description');
 }
 if (!/id="route-map-long-description"/.test(html)) errors.push('HTML lacks a structured long description');
 if (/route-map-editor|editor-runtime|mountRouteMapEditor|ReactFlow|reactflow/i.test(html)) {
   errors.push('static HTML contains editor/runtime code');
 }
 if ((html.match(/<svg\b/g) ?? []).length !== 1) errors.push('static HTML must contain exactly one SVG');
+if (!/<svg\b[^>]*\bversion="1\.1"/.test(svg)) errors.push('standalone SVG does not declare SVG 1.1');
+if (!/<svg\b[^>]*\bdata-editable-svg="office-compatible"/.test(svg)) {
+  errors.push('standalone SVG lacks the Office-compatible editability declaration');
+}
+const forbiddenOfficeSvg = [
+  ['script', /<script\b/i],
+  ['foreignObject', /<foreignObject\b/i],
+  ['style', /<style\b/i],
+  ['filter', /<(?:filter|fe[A-Za-z]+)\b/i],
+  ['gradient', /<(?:linearGradient|radialGradient)\b/i],
+  ['pattern', /<pattern\b/i],
+  ['external image', /<image\b/i],
+  ['marker arrowhead', /<marker\b|marker-(?:start|mid|end)=/i],
+  ['external reference', /\b(?:href|xlink:href)\s*=\s*["'](?!#)/i],
+  ['CSS URL reference', /\burl\s*\(/i]
+];
+for (const [label, pattern] of forbiddenOfficeSvg) {
+  if (pattern.test(svg)) errors.push(`standalone SVG contains unsupported ${label}`);
+}
+if (!/<text\b[^>]*\bdata-editable-text="true"/.test(svg)) {
+  errors.push('standalone SVG does not preserve editable text elements');
+}
+const textTags = [...svg.matchAll(/<text\b[^>]*>/g)].map((match) => match[0]);
+if (textTags.some((tag) => !/\bdata-editable-text="true"/.test(tag))) {
+  errors.push('standalone SVG contains an unmarked or non-editable text element');
+}
+if (/<path\b[^>]*\bdata-editable-text=/.test(svg)) {
+  errors.push('standalone SVG contains text converted to a path');
+}
+const editablePathTags = [...svg.matchAll(/<path\b[^>]*>/g)].map((match) => match[0]);
+if (editablePathTags.some((tag) => !/\bdata-editable-part="(?:connector|containment)"/.test(tag))) {
+  errors.push('standalone SVG contains an unexplained path that may be outlined text');
+}
+const expectedLayers = layout.semantic_layers ?? [];
+for (const layer of expectedLayers) {
+  if (!svg.includes(`id="${svgId('layer', layer)}"`)) errors.push(`standalone SVG is missing semantic layer ${layer}`);
+}
+for (const node of graph.nodes) {
+  if (layout.bounds?.[node.id] && !svg.includes(`id="${svgId('node', node.id)}"`)) {
+    errors.push(`standalone SVG is missing editable node group ${node.id}`);
+  }
+}
+for (const group of graph.groups) {
+  if (layout.group_rows?.[group.id] && !svg.includes(`id="${svgId('stage', group.id)}"`)) {
+    errors.push(`standalone SVG is missing editable stage group ${group.id}`);
+  }
+}
+for (const route of layout.edge_routes ?? []) {
+  if (!svg.includes(`id="${svgId('edge', route.id)}"`)) {
+    errors.push(`standalone SVG is missing editable edge group ${route.id}`);
+  }
+}
 
 if (['1.2', '1.3'].includes(designInput.schema_version)) {
   for (const [key, value] of Object.entries(layout.typography_pt ?? {})) {
@@ -286,7 +345,9 @@ if (
   || exportReport.output?.height !== layout.target_png.height
 ) errors.push('PNG dimensions do not match target_png');
 if (Math.round(exportReport.output?.density ?? 0) !== 300) errors.push('PNG density is not 300 dpi');
-if (exportReport.same_embedded_svg_source !== true) errors.push('PNG export did not confirm the embedded SVG source');
+if (exportReport.source_svg_sha256 !== sha256(svg)) errors.push('PNG export source hash differs from standalone SVG');
+if (exportReport.same_svg_source !== true) errors.push('PNG export did not confirm the standalone SVG source');
+if (exportReport.same_embedded_svg_source !== true) errors.push('PNG export did not confirm the matching HTML embedded SVG');
 
 const moduleRoots = (process.env.RRM_NODE_MODULES ?? process.env.NODE_PATH ?? '')
   .split(path.delimiter).map((entry) => entry.trim()).filter(Boolean);
@@ -436,11 +497,13 @@ try {
 
 const selfChecks = {
   static_html_only: !/route-map-editor|editor-runtime|ReactFlow/i.test(html),
+  standalone_editable_svg: errors.every((message) => !message.startsWith('standalone SVG')),
+  svg_html_identical: Boolean(svgMatch && svgMatch[0] === svg),
   one_embedded_svg: (html.match(/<svg\b/g) ?? []).length === 1,
   orthogonal_connectors: (layout.edge_routes ?? []).every((route) => isOrthogonalPoints(normalizePointArray(route.points ?? []))),
   orthogonal_tree_routes: (layout.tree_routes ?? []).every((route) => isOrthogonalPoints(normalizePointArray(route.points ?? []))),
-  no_connector_curves: !svgMatch || !/[CQSTA]/i.test(
-    [...svgMatch[0].matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]).join(' ')
+  no_connector_curves: !/[CQSTA]/i.test(
+    [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]).join(' ')
   ),
   png_dimensions: exportReport.output?.width === layout.target_png.width && exportReport.output?.height === layout.target_png.height,
   accessible_description: Boolean(layout.accessible_description),
@@ -455,12 +518,14 @@ const result = {
   checked_nodes: boxes.length,
   checked_edges: (layout.edge_routes?.length ?? 0) + (layout.tree_routes?.length ?? 0),
   output: {
+    svg: 'route-map.svg',
     html: 'route-map.html',
     png: 'route-map.png',
     png_width: exportReport.output?.width ?? null,
     png_height: exportReport.output?.height ?? null,
     dpi: exportReport.output?.density ?? null,
     export_mode: exportReport.mode ?? null,
+    same_svg_source: exportReport.same_svg_source === true,
     same_embedded_svg_source: exportReport.same_embedded_svg_source === true
   },
   dom_checks: domChecks,

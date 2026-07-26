@@ -1,6 +1,6 @@
 interface:
   display_name: "科研技术路线图"
-  short_description: "轻量调研问答后，以 Mermaid 草图确认并生成静态科研路线图"
-  default_prompt: "使用 $research-route-map 调研我的研究主题：先参考相似路线提出不超过 5 个自适应问题，再给出精简 Mermaid 草图供我对话修改和确认；确认后使用动态可见分栏、内容自适应高度和树形子项生成静态 HTML、2× 高清 PNG 与 QA 报告。所有连线使用直线或正交折线，不生成编辑器。"
+  short_description: "轻量调研问答后，以 Mermaid 草图确认并生成可编辑科研路线图"
+  default_prompt: "使用 $research-route-map 调研我的研究主题：先参考相似路线提出不超过 5 个自适应问题，再给出精简 Mermaid 草图供我对话修改和确认；确认后使用动态可见分栏、内容自适应高度和树形子项生成可编辑 SVG、静态 HTML、2× 高清 PNG 与 QA 报告。所有连线使用直线或正交折线，不生成编辑器 runtime。"
 policy:
   allow_implicit_invocation: true

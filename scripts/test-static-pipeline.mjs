@@ -409,7 +409,7 @@ function makeAdaptiveProject(stageCount = 4, suffix = '') {
   const base = makeProject('research-process', stageCount, '1.2');
   const dir = path.join(root, `research-process-adaptive-v13-${stageCount}${suffix ? `-${suffix}` : ''}`);
   fs.cpSync(base, dir, {recursive: true});
-  for (const generated of ['framework_lock.json', 'validation-report.json', 'spec_lock.json', 'route-map.html', 'render-layout.json', 'route-map.png', 'export-report.json', 'qa-report.json']) {
+  for (const generated of ['framework_lock.json', 'validation-report.json', 'spec_lock.json', 'route-map.svg', 'route-map.html', 'render-layout.json', 'route-map.png', 'export-report.json', 'qa-report.json']) {
     fs.rmSync(path.join(dir, generated), {force: true});
   }
   const graph = JSON.parse(fs.readFileSync(path.join(dir, 'research_graph.json'), 'utf8'));
@@ -507,10 +507,31 @@ function render(project) {
   validate(project);
   run('lock-spec.mjs', project);
   run('render-html.mjs', project);
+  const svg = fs.readFileSync(path.join(project, 'route-map.svg'), 'utf8');
   const html = fs.readFileSync(path.join(project, 'route-map.html'), 'utf8');
+  const embedded = html.match(/<svg id="route-map-svg"[\s\S]*?<\/svg>/)?.[0];
+  const layout = JSON.parse(fs.readFileSync(path.join(project, 'render-layout.json'), 'utf8'));
+  assert.equal(embedded, svg);
+  assert.equal(layout.standalone_svg_sha256, sha256(svg));
+  assert.equal(layout.editable_svg.text_as_text, true);
+  assert.deepEqual(layout.semantic_layers, [
+    'background-title',
+    'headers',
+    'stages',
+    'connectors',
+    'nodes',
+    'outcomes',
+    'legend'
+  ]);
+  assert.match(svg, /data-editable-svg="office-compatible"/);
+  assert.match(svg, /<text\b[^>]*data-editable-text="true"/);
+  assert.doesNotMatch(svg, /<script\b|<foreignObject\b|<style\b|<filter\b|<linearGradient\b|<radialGradient\b|<marker\b/i);
+  assert.match(svg, /id="layer-connectors"/);
+  assert.match(svg, /id="node-g1-question"/);
+  assert.match(svg, /id="edge-e-g1-question-work"/);
   assert.equal((html.match(/<svg\b/g) ?? []).length, 1);
   assert.doesNotMatch(html, /editor-runtime|ReactFlow|route-map-editor/i);
-  const pathData = [...html.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]);
+  const pathData = [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(pathData.some(pathHasCurve), false);
 }
 
@@ -793,7 +814,7 @@ try {
   run('visual-qa.mjs', fallbackProject);
   const fallbackExport = JSON.parse(fs.readFileSync(path.join(fallbackProject, 'export-report.json'), 'utf8'));
   const fallbackQa = JSON.parse(fs.readFileSync(path.join(fallbackProject, 'qa-report.json'), 'utf8'));
-  assert.equal(fallbackExport.mode, 'embedded-svg-fallback');
+  assert.equal(fallbackExport.mode, 'standalone-svg-fallback');
   assert.equal(fallbackQa.ok, true, fallbackQa.errors.join('\n'));
 
   const cleanLayoutRaw = fs.readFileSync(path.join(qaProject, 'render-layout.json'), 'utf8');
@@ -816,16 +837,48 @@ try {
   assert.ok(misalignedCellQa.errors.some((message) => message.includes('not aligned to its header')));
   fs.writeFileSync(path.join(adaptiveProject, 'render-layout.json'), adaptiveLayoutRaw);
 
+  const cleanSvg = fs.readFileSync(path.join(qaProject, 'route-map.svg'), 'utf8');
   const cleanHtml = fs.readFileSync(path.join(qaProject, 'route-map.html'), 'utf8');
-  const curvedHtml = cleanHtml.replace(
-    /(<path class="structural-edge[^"]*" d=")[^"]+(")/,
+  const curvedSvg = cleanSvg.replace(
+    /(<path\b[^>]*class="[^"]*structural-edge[^"]*"[^>]*\bd=")[^"]+(")/,
     '$1M 10 10 C 20 20 30 30 40 40$2'
   );
-  assert.notEqual(curvedHtml, cleanHtml, 'curve injection did not find a structural connector');
+  const curvedHtml = cleanHtml.replace(cleanSvg, curvedSvg);
+  assert.notEqual(curvedSvg, cleanSvg, 'curve injection did not find a structural connector');
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), curvedSvg);
   fs.writeFileSync(path.join(qaProject, 'route-map.html'), curvedHtml);
   runExpectedFailure('visual-qa.mjs', qaProject);
   const curveQa = JSON.parse(fs.readFileSync(path.join(qaProject, 'qa-report.json'), 'utf8'));
   assert.ok(curveQa.errors.some((message) => message.includes('curve or arc')));
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), cleanSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.html'), cleanHtml);
+
+  const divergentSvg = cleanSvg.replace('data-editable-svg="office-compatible"', 'data-editable-svg="office-compatible" data-test-divergence="true"');
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), divergentSvg);
+  runExpectedFailure('visual-qa.mjs', qaProject);
+  const divergentQa = JSON.parse(fs.readFileSync(path.join(qaProject, 'qa-report.json'), 'utf8'));
+  assert.ok(divergentQa.errors.some((message) => message.includes('differs from the HTML embedded SVG')));
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), cleanSvg);
+
+  const missingGroupSvg = cleanSvg.replace('id="node-g1-question"', 'id="node-g1-question-removed"');
+  const missingGroupHtml = cleanHtml.replace(cleanSvg, missingGroupSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), missingGroupSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.html'), missingGroupHtml);
+  runExpectedFailure('visual-qa.mjs', qaProject);
+  const missingGroupQa = JSON.parse(fs.readFileSync(path.join(qaProject, 'qa-report.json'), 'utf8'));
+  assert.ok(missingGroupQa.errors.some((message) => message.includes('missing editable node group g1-question')));
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), cleanSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.html'), cleanHtml);
+
+  const unsafeSvg = cleanSvg.replace('</svg>', '<foreignObject x="0" y="0" width="1" height="1"></foreignObject></svg>');
+  const unsafeHtml = cleanHtml.replace(cleanSvg, unsafeSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), unsafeSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.html'), unsafeHtml);
+  runExpectedFailure('visual-qa.mjs', qaProject);
+  const unsafeQa = JSON.parse(fs.readFileSync(path.join(qaProject, 'qa-report.json'), 'utf8'));
+  assert.ok(unsafeQa.errors.some((message) => message.includes('unsupported foreignObject')));
+  fs.writeFileSync(path.join(qaProject, 'route-map.svg'), cleanSvg);
+  fs.writeFileSync(path.join(qaProject, 'route-map.html'), cleanHtml);
 
   const result = {
     ok: true,
@@ -845,9 +898,9 @@ try {
       '2× 300 dpi PNG'
     ],
     adaptive_stage_layouts: adaptiveStageLayouts,
-    rejection_tests: ['unlabelled optional edge', 'more than three orthogonal segments', 'edge crossing a node', 'misaligned stage cell', 'SVG curve command'],
-    stress_tests: ['long Chinese/English mixed node', 'six-stage dense layout', 'embedded-SVG browser fallback'],
-    static_artifacts: ['route-map.html', 'route-map.png', 'qa-report.json']
+    rejection_tests: ['unlabelled optional edge', 'more than three orthogonal segments', 'edge crossing a node', 'misaligned stage cell', 'SVG curve command', 'standalone/embedded SVG divergence', 'missing editable group', 'Office-incompatible SVG element'],
+    stress_tests: ['long Chinese/English mixed node', 'six-stage dense layout', 'standalone-SVG browser fallback'],
+    static_artifacts: ['route-map.svg', 'route-map.html', 'route-map.png', 'qa-report.json']
   };
   console.log(JSON.stringify(result, null, 2));
 } finally {

@@ -68,22 +68,22 @@ This file separates external requirements and guidance from the skill's internal
 | Preserve identification/screening/allocation/inclusion counts and reasons required by the applicable guideline | PRISMA/CONSORT or selected domain guideline | `study-flow` | mandatory when the guideline is in scope |
 | Load controls, samples, bias safeguards, analysis, validation, and transparency checks from the selected domain profile | NIH rigor and EQUATOR-family guidance | all, profile-dependent | applicability check; never substitutes for design evidence |
 | Use true decision symbols only for actual decisions | ISO 5807 convention, narrowly applied | all | mandatory |
-| Use adaptive content-fit research-process layout, static HTML, one embedded SVG, 2× 300 dpi PNG, and straight/orthogonal connectors | house rendering contract | `research-process` | mandatory for new projects |
+| Use adaptive content-fit research-process layout, editable standalone SVG, static HTML with the identical embedded SVG, 2× 300 dpi PNG, and straight/orthogonal connectors | house rendering contract | `research-process` | mandatory for new projects |
 | Preserve fixed A4 geometry for legacy explicit 1.0–1.2 designs | compatibility contract | all | mandatory when reading existing projects |
 | Use two to three analogous routes to ask no more than five non-repeating adaptive questions | user-selected conversational research contract | all | mandatory for new projects |
 | Use a compact revisioned Mermaid diagram as the sole user confirmation gate | user-selected confirmation contract | all | mandatory for new projects; legacy Markdown remains readable |
 | Generate one header and one independent per-stage cell per visible region, keep empty stage/lane cells, place stage titles only in the content cell, and switch from 1240 to 1754 px when necessary | house layout preset | `research-process` | mandatory for new projects |
 | Keep normal text at 4.5:1, essential graphics at 3:1, final type at least 7 pt, and retain grayscale meaning | WCAG plus NIH/Nature figure guidance, with house print threshold | all | mandatory QA threshold |
-| Produce no editor runtime and deliver only HTML, PNG, and QA report | user-selected static workflow | all | mandatory |
+| Produce no editor runtime and deliver editable SVG, static HTML, PNG, and QA report | user-selected external-editing workflow | all | mandatory |
 
 ## Internal decisions
 
 - Default “科研技术路线图” to `research-process`.
 - For a new research-process figure, derive headers from visible regions, create one matching independent cell per stage and region, derive stage height from actual cell requirements, and use content-fit height. Try 1240 px width before 1754 px.
 - Preserve A4 portrait/landscape only for legacy explicit designs or an external delivery requirement.
-- Use static HTML with an embedded SVG and a PNG derived from that same SVG.
+- Write an editable standalone SVG, embed it unchanged in the static HTML, and derive the PNG from that standalone SVG.
 - Use straight and orthogonal connectors only.
 - Use dashed connectors only for optional or uncertain semantics and never as the sole semantic cue.
 - Ask at most three first-round questions and at most two high-impact follow-ups.
 - Use a stable-ID Mermaid draft with `stepAfter`, at most 10 visible nodes, and explicit confirmation before graph generation.
-- Do not load or deliver an editor.
+- Do not load or deliver an editor runtime; editing occurs in external SVG-capable software.
