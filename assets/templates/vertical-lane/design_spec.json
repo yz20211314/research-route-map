@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.2",
+  "title": "科研技术路线图",
+  "route_mode": "research-process",
+  "layout_mode": "portrait-research-process",
+  "orientation": "portrait",
+  "canvas": {
+    "width": 1240,
+    "height": 1754,
+    "background": "#FFFFFF"
+  },
+  "target_png": {
+    "width": 2480,
+    "height": 3508,
+    "dpi": 300
+  },
+  "method_rail_mode": "aligned",
+  "line_semantics": {
+    "orthogonal_only": true,
+    "max_segments": 3,
+    "optional_style": "dashed"
+  },
+  "typography_pt": {
+    "title": 16,
+    "stage": 10,
+    "node": 8.5,
+    "method": 7.5,
+    "secondary": 7.5,
+    "legend": 7
+  },
+  "stage_rail": {
+    "x": 28,
+    "width": 110,
+    "enabled": true
+  },
+  "lanes": [
+    {
+      "id": "thinking",
+      "x": 28,
+      "width": 110
+    },
+    {
+      "id": "primary",
+      "x": 150,
+      "width": 810
+    },
+    {
+      "id": "method",
+      "x": 988,
+      "width": 220
+    }
+  ],
+  "column_headers": [
+    {
+      "lane": "thinking",
+      "label": "研究思路"
+    },
+    {
+      "lane": "primary",
+      "label": "研究内容"
+    },
+    {
+      "lane": "method",
+      "label": "研究方法"
+    }
+  ],
+  "group_placements": {},
+  "placements": {},
+  "stage_flow_nodes": {},
+  "visible_edge_ids": [],
+  "edge_paths": {},
+  "theme": {
+    "ink": "#1F2937",
+    "muted": "#64748B",
+    "paper": "#FFFFFF",
+    "neutral": "#F3F4F6",
+    "theory": "#E6EEF9",
+    "method": "#E7F3F1",
+    "evidence": "#FFF2D8",
+    "accent": "#B93838",
+    "outcome": "#EAF4E2",
+    "validation": "#EEE8F8"
+  }
+}

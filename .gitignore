@@ -1,0 +1,21 @@
+.DS_Store
+node_modules/
+.cache/
+tmp/
+
+# Generated project artifacts
+route-map.html
+route-map.png
+qa-report.json
+render-layout.json
+export-report.json
+validation-report.json
+draft-validation-report.json
+framework_lock.json
+draft_lock.json
+spec_lock.json
+
+# Legacy editor code is intentionally excluded from the static-only release.
+assets/editor/
+scripts/build-editor-runtime.mjs
+scripts/prepare-editor-runtime.mjs

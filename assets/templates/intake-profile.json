@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "topic": "",
+  "route_mode": "research-process",
+  "domain_profile": "general",
+  "draft_revision": 1,
+  "research_context": {
+    "level": "other",
+    "use_case": ""
+  },
+  "scope": {
+    "core_question": "",
+    "object": "",
+    "boundary": "",
+    "expected_output": ""
+  },
+  "resources": {
+    "data_samples": "",
+    "equipment_software": "",
+    "required_methods": [],
+    "excluded_methods": [],
+    "time_constraints": "",
+    "other_constraints": ""
+  },
+  "questions": [],
+  "question_count": 0,
+  "unresolved": [],
+  "stage_override": {
+    "allowed": false,
+    "reason": ""
+  },
+  "density_exception": {
+    "allowed": false,
+    "reason": ""
+  },
+  "prefilled_from": []
+}
