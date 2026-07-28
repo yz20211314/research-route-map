@@ -281,6 +281,13 @@ try {
       basis,
       draft: draftFor(3),
       match: /scope.core_question/
+    },
+    {
+      name: 'unsupported generation mode',
+      intake: {...intakeFor('undergraduate'), generation_mode: 'instant'},
+      basis,
+      draft: draftFor(3),
+      match: /generation_mode/
     }
   ];
   for (const test of invalidCases) {

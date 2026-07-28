@@ -735,6 +735,8 @@ try {
   assert.equal(draftSpecLock.contract.source_mode, 'mermaid-draft');
   assert.ok(draftSpecLock.inputs.route_draft);
   assert.ok(draftSpecLock.inputs.draft_lock);
+  assert.deepEqual(draftSpecLock.contract.output, ['route-map.svg', 'route-map.html', 'route-map.png']);
+  assert.ok(draftSpecLock.contract.internal_quality.includes('qa-report.json'));
 
   const adaptiveProject = makeAdaptiveProject();
   render(adaptiveProject);
@@ -1017,6 +1019,15 @@ try {
   const cleanQa = JSON.parse(fs.readFileSync(path.join(qaProject, 'qa-report.json'), 'utf8'));
   assert.equal(cleanQa.ok, true, cleanQa.errors.join('\n'));
 
+  const fastDelivery = path.join(root, 'fast-delivery');
+  run('build-route.mjs', draftConfirmedProject, ['--mode', 'fast', '--delivery-dir', fastDelivery]);
+  assert.deepEqual(fs.readdirSync(fastDelivery).sort(), ['route-map.html', 'route-map.png', 'route-map.svg']);
+  assert.equal(fs.existsSync(path.join(fastDelivery, 'qa-report.json')), false);
+
+  const rigorousDelivery = path.join(root, 'rigorous-delivery');
+  run('build-route.mjs', draftConfirmedProject, ['--mode', 'rigorous', '--delivery-dir', rigorousDelivery]);
+  assert.deepEqual(fs.readdirSync(rigorousDelivery).sort(), ['route-map.html', 'route-map.png', 'route-map.svg']);
+
   const denseProject = stageProjects[6];
   render(denseProject);
   run('export-image.mjs', denseProject);
@@ -1128,7 +1139,8 @@ try {
       'Office-incompatible SVG element'
     ],
     stress_tests: ['long Chinese/English mixed node', 'six-stage dense layout', 'standalone-SVG browser fallback'],
-    static_artifacts: ['route-map.svg', 'route-map.html', 'route-map.png', 'qa-report.json']
+    static_artifacts: ['route-map.svg', 'route-map.html', 'route-map.png'],
+    internal_quality_artifacts: ['qa-report.json', 'validation-report.json', 'render-layout.json', 'export-report.json']
   };
   console.log(JSON.stringify(result, null, 2));
 } finally {

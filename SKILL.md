@@ -1,6 +1,6 @@
 ---
 name: research-route-map
-description: Convert supplied research content or a structured research outline into an evidence-aware scientific route map. Validate content completeness, compare two to three analogous routes, ask at most five non-repeating questions, confirm a compact Mermaid draft, then generate an editable SVG, static HTML, and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with provenance and QA. Use when users provide research content for a thesis, proposal, fund application, or project and want a technical route map.
+description: Convert supplied research content or a structured research outline into an evidence-aware scientific route map. Validate content completeness, compare two to three analogous routes, ask at most five non-repeating questions, confirm a compact Mermaid draft, then generate an editable SVG, static HTML, and high-resolution PNG research-process roadmap, research framework, technology-development roadmap, or study-flow diagram with a fast or rigorous evidence profile and QA. Use when users provide research content for a thesis, proposal, fund application, or project and want a technical route map.
 ---
 
 # Research Route Map
@@ -8,6 +8,15 @@ description: Convert supplied research content or a structured research outline 
 Require complete research content or a structured research outline. Never turn a title alone into a complete research design. Extract supplied content before searching or asking questions, let the user edit a compact Mermaid draft through conversation, and render only after explicit confirmation of the current revision.
 
 This skill produces static artifacts. Do not prepare, load, inject, or deliver an editor runtime.
+
+## Generation profiles
+
+Every new intake may set `generation_mode` to `fast` or `rigorous`; the default is `fast`.
+
+- `fast` reuses the supplied research content and verified analogous-route basis. It does not repeat full post-confirmation evidence deepening when the confirmed draft already covers methods/data, indicators or validation, and outputs.
+- `rigorous` performs the full post-confirmation evidence pass and node-level provenance work. Use it for fund applications, doctoral research, formal review, high-risk domains, or when the user requests complete source traceability.
+
+The profile changes evidence effort, not scientific logic or visual quality. Both profiles retain Mermaid confirmation, source locks, graph/design validation, same-source SVG/HTML/PNG export, accessibility checks, and visual QA. A fast project with a high-impact unresolved source, feasibility, ethics, or validation gap must be escalated to rigorous mode or remain provisional; never hide the gap to make the build pass.
 
 ## Required references
 
@@ -34,6 +43,12 @@ When “技术路线图” is ambiguous, use `research-process` and record the a
 
 ## Non-negotiable sequence
 
+Fast profile:
+
+`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → reuse verified basis → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
+
+Rigorous profile:
+
 `Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
 
 For a new project, Mermaid is the only user-facing confirmation gate. Do not create `research_route_framework.md`.
@@ -59,6 +74,8 @@ After the content gate passes, follow Pass 1 in [references/topic-research.md](r
 - method forks the user must decide.
 
 Save this compact basis as `research_basis.json`. It exists to improve the intake, not to create a literature review. Do not send the user a long search summary.
+
+Use the intake `generation_mode` to decide whether the confirmed project needs Pass 2. Pass 1 remains required for a verified route basis in both profiles.
 
 Classify route evidence as:
 
@@ -149,9 +166,11 @@ The validator checks question count, intake completeness, research status, acade
 
 If web research is unavailable, a provisional draft may say `未核验` or `待定`, but validation and locking remain blocked. If the user skips a high-impact answer, preserve the pending marker and stop before final generation.
 
-## 6. Deepen evidence without changing the route silently
+## 6. Apply the evidence profile without changing the route silently
 
-Follow Pass 2 in [references/topic-research.md](references/topic-research.md). Keep the locked `research_basis.json` unchanged. Add deeper node-level sources to `research_graph.json`.
+For `rigorous` projects, follow Pass 2 in [references/topic-research.md](references/topic-research.md). Keep the locked `research_basis.json` unchanged and add deeper node-level sources to `research_graph.json`.
+
+For `fast` projects, reuse the supplied research content and the locked Pass 1 basis. Build only the graph detail needed to preserve each confirmed work package, concrete method/data, indicator or validation, and stage output. Do not create an unnecessarily large evidence expansion just to fill internal JSON. If a high-impact gap remains, record it as unresolved and switch to `rigorous` before final generation.
 
 If later evidence would alter a stage, method, primary edge, branch, or claimed output:
 
@@ -194,13 +213,21 @@ Verify every applicable category: objective, object/boundary, theory/context, da
 
 ## 8. Validate, render, export, and inspect
 
-Run in order:
+For a manual build, run in order:
 
 1. `node scripts/validate-spec.mjs <project>`
 2. `node scripts/lock-spec.mjs <project>`
 3. `node scripts/render-html.mjs <project>`
 4. `node scripts/export-image.mjs <project>`
 5. `node scripts/visual-qa.mjs <project>`
+
+For a single low-overhead build invocation after the draft and source locks already exist, use:
+
+```bash
+node scripts/build-route.mjs <project> --mode fast --delivery-dir <output-dir>
+```
+
+Use `--mode rigorous` when the project needs Pass 2 provenance. The build command still runs full visual QA in both modes; it only reduces orchestration round-trips. `--delivery-dir` copies only `route-map.html`, `route-map.svg`, and `route-map.png`. Internal JSON files remain in the project for reproducibility and are not copied to the delivery directory.
 
 Write `route-map.svg` as an editable, self-contained SVG 1.1 artifact, and embed that exact SVG string in the static HTML. Preserve real `<text>/<tspan>` elements and stable semantic groups for layers, stages, nodes, and edges. Use basic Office-compatible SVG primitives only; do not use scripts, remote resources, `foreignObject`, filters, gradients, patterns, images, marker arrowheads, or embedded fonts.
 
@@ -246,9 +273,9 @@ Playwright may capture the standalone SVG element. If unavailable, rasterize `ro
 | `route-map.svg` | Editable Office-compatible standalone SVG |
 | `route-map.html` | Self-contained static HTML |
 | `route-map.png` | 2× 300 dpi adaptive image, or legacy A4 image |
-| `qa-report.json` | Structure, line routing, accessibility, and output QA |
+| `qa-report.json` | Internal structure, line routing, accessibility, and output QA; share only when requested |
 
-Keep intermediate files in the working project. Deliver `route-map.svg`, `route-map.html`, `route-map.png`, and `qa-report.json` unless the user asks for evidence or machine-readable specifications.
+Keep intermediate files in the working project. The default user delivery is only `route-map.svg`, `route-map.html`, and `route-map.png`. Keep `qa-report.json`, graph/design files, locks, layout data, and evidence files internal unless the user asks for a quality report or machine-readable specifications.
 
 ## Ownership boundaries
 

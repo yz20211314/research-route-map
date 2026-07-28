@@ -1,6 +1,6 @@
 {
   "name": "research-route-map-skill",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Codex skill for evidence-aware, user-confirmed scientific research route maps.",
   "license": "Apache-2.0",
@@ -12,7 +12,8 @@
     "test": "npm run test:draft && npm run test:stages && npm run test:static",
     "test:draft": "node scripts/test-draft-pipeline.mjs",
     "test:stages": "node scripts/test-stage-counts.mjs",
-    "test:static": "node scripts/test-static-pipeline.mjs"
+    "test:static": "node scripts/test-static-pipeline.mjs",
+    "build": "node scripts/build-route.mjs"
   },
   "dependencies": {
     "playwright": "^1.61.1",

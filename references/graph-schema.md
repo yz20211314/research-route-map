@@ -2,6 +2,8 @@
 
 `research_graph.json` is the single source of truth for scientific content. Use schema `1.2` for new projects. Schema `1.0` and `1.1` remain readable and are normalized in memory without rewriting source files.
 
+The companion `intake_profile.json` may set `generation_mode` to `fast` or `rigorous`. This controls evidence effort and provenance depth only; graph schema, confirmed route logic, layout rules, and output QA remain the same.
+
 ## Graph 1.2
 
 ```json

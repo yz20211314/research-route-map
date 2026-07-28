@@ -1,6 +1,6 @@
 interface:
   display_name: "科研技术路线图"
   short_description: "将完整研究内容转为可确认、可编辑、可交付的科研技术路线图"
-  default_prompt: "使用 $research-route-map 将我提供的研究内容转换为技术路线图：先检查内容完整性，只追问会改变路线的问题，再用 Mermaid 确认，并生成研究思路、研究内容与阶段输出、研究方法三列的可编辑 SVG、静态 HTML、高清 PNG 与 QA 报告。"
+  default_prompt: "使用 $research-route-map 将我提供的研究内容转换为技术路线图：先检查内容完整性，只追问会改变路线的问题，再用 Mermaid 确认；默认采用快速制图模式生成研究思路、研究内容与阶段输出、研究方法三列的可编辑 SVG、静态 HTML 和高清 PNG。若需要完整来源追溯，请切换到严谨研究模式。"
 policy:
   allow_implicit_invocation: true

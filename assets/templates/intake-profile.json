@@ -3,6 +3,7 @@
   "topic": "",
   "route_mode": "research-process",
   "domain_profile": "general",
+  "generation_mode": "fast",
   "draft_revision": 1,
   "research_content": {
     "input_level": "title-only",

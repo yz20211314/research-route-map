@@ -2,7 +2,9 @@
 
 Use this reference after the user supplies complete research content or a structured outline, or when the user asks to supplement that material with analogous studies. A title-only request must return to the content gate in `adaptive-intake.md`.
 
-## Two-pass research
+## Two-pass research and generation profiles
+
+The skill supports two generation profiles. `fast` is the default for ordinary route-map generation and `rigorous` is opt-in for formal evidence-heavy work. The profile changes how much evidence work is performed after draft confirmation; it never changes the confirmed stages, methods, outputs, line routing, or QA rules.
 
 Use research in two deliberately different passes.
 
@@ -18,9 +20,11 @@ After the research-content completeness check passes and before asking adaptive 
 
 Save the result in `research_basis.json`. This pass exists to check the supplied structure and improve questions, not to author or replace the user's research content. Do not send a long literature summary.
 
-### Pass 2: evidence deepening
+### Pass 2: evidence deepening (`rigorous` by default)
 
-After the user confirms the Mermaid draft, deepen evidence for node provenance, validation, domain rigor, and recent methods. Keep a confirmed `research_basis.json` unchanged. Put additional supporting references in `research_graph.json`.
+After the user confirms the Mermaid draft, rigorous mode deepens evidence for node provenance, validation, domain rigor, and recent methods. Keep a confirmed `research_basis.json` unchanged. Put additional supporting references in `research_graph.json`.
+
+In fast mode, reuse the supplied research content and the verified Pass 1 basis. Do not repeat the full query cluster or rebuild a large node-level evidence table when the confirmed draft already contains the required methods, data, indicators, validation, and outputs. Escalate to rigorous mode when a high-impact source, feasibility, ethics, or validation gap remains, or when the user asks for complete provenance.
 
 If deeper research would change a stage, method, branch, or primary sequence, revise `route_draft.mmd`, increment its revision, and return to user confirmation. Never silently change confirmed research logic.
 

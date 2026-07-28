@@ -12,6 +12,7 @@ Store new-project state in `intake_profile.json` with schema `1.1`. Schema 1.0 r
   "topic": "",
   "route_mode": "research-process",
   "domain_profile": "general",
+  "generation_mode": "fast",
   "draft_revision": 1,
   "research_content": {
     "input_level": "outline",
@@ -71,6 +72,13 @@ Controlled `research_content.input_level` values are:
 - `full` — the user supplied full research content;
 - `outline` — the user supplied a structured outline sufficient to identify work packages, methods/evidence, and outputs;
 - `title-only` — only a topic/title is available.
+
+Controlled `generation_mode` values are:
+
+- `fast` — default for ordinary route-map generation. Reuse the supplied research content and verified Pass 1 basis; do not repeat deep evidence research unless a high-impact gap remains.
+- `rigorous` — use Pass 2 evidence deepening for fund applications, doctoral research, formal project review, high-risk domains, or when the user explicitly requests full provenance.
+
+The generation mode controls evidence effort and provenance depth, not the visual grammar. Both modes must preserve the confirmed Mermaid logic, concrete methods/data/indicators, output coverage, SVG/HTML/PNG same-source checks, and visual QA. A fast project with an unresolved high-impact evidence or feasibility gap must be escalated to rigorous mode or remain provisional; it must not silently omit the gap.
 
 `title-only` blocks Mermaid validation and locking. Ask the user to provide or attach research content with this compact template:
 

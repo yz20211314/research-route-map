@@ -5,6 +5,7 @@ import {DOMAIN_PROFILES, ROUTE_MODES, sha256} from './route-utils.mjs';
 export const INTAKE_LEVELS = new Set(['undergraduate', 'master', 'doctoral', 'professor-team', 'other']);
 export const INTAKE_VERSIONS = new Set(['1.0', '1.1']);
 export const RESEARCH_CONTENT_LEVELS = new Set(['full', 'outline', 'title-only']);
+export const GENERATION_MODES = new Set(['fast', 'rigorous']);
 export const BASIS_STATUSES = new Set(['verified', 'limited', 'unavailable']);
 export const DRAFT_SOURCE_FILES = ['intake_profile.json', 'research_basis.json', 'route_draft.mmd'];
 
@@ -94,6 +95,9 @@ export function validateDraftInputs(intake, basis, draftRaw) {
   if (!nonEmpty(intake?.topic)) errors.push('intake_profile.json: topic is required');
   if (!ROUTE_MODES.has(intake?.route_mode)) errors.push('intake_profile.json: unsupported route_mode');
   if (!DOMAIN_PROFILES.has(intake?.domain_profile)) errors.push('intake_profile.json: unsupported domain_profile');
+  if (intake?.generation_mode !== undefined && !GENERATION_MODES.has(intake.generation_mode)) {
+    errors.push('intake_profile.json: generation_mode must be fast or rigorous');
+  }
   if (!Number.isInteger(intake?.draft_revision) || intake.draft_revision < 1) {
     errors.push('intake_profile.json: draft_revision must be a positive integer');
   }

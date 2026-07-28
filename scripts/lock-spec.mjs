@@ -54,7 +54,8 @@ const lock = {
     render_must_not_add_or_remove_nodes: true,
     static_only: true,
     orthogonal_connectors_only: true,
-    output: ['route-map.svg', 'route-map.html', 'route-map.png', 'qa-report.json']
+    output: ['route-map.svg', 'route-map.html', 'route-map.png'],
+    internal_quality: ['qa-report.json', 'validation-report.json', 'render-layout.json', 'export-report.json']
   }
 };
 fs.writeFileSync(path.join(project, 'spec_lock.json'), JSON.stringify(lock, null, 2));
