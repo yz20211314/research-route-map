@@ -102,7 +102,7 @@ For a full research-process/framework figure:
 
 - normally 3–6 macro containers;
 - new research-process figures use three semantic regions: research thinking, content/output, and summary research methods;
-- target 18–45 visible nodes;
+- do not force a universal visible-node target; choose the smallest graph that preserves the confirmed relations, then let adaptive layout expose distinct subnodes. Use group density and logic QA warnings to decide whether to split, branch, or collapse content;
 - 1–3 milestones/decisions per stage;
 - no more than 5–7 color roles.
 

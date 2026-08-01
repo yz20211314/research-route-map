@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
+  contractHiddenStageFlowEdges,
   crossingNodeIds,
   isOrthogonalPoints,
   orthogonalRoute,
@@ -669,6 +670,38 @@ try {
     method_rail_mode: 'mapped',
     edge_paths: {}
   };
+  const hiddenFlowGraph = {
+    meta: {route_mode: 'research-process'},
+    groups: [{id: 'g1', output_node: 'c'}],
+    lanes: [{id: 'primary', kind: 'primary'}],
+    nodes: [
+      {id: 'a', lane: 'primary', group: 'g1'},
+      {id: 'b', lane: 'primary', group: 'g1'},
+      {id: 'c', lane: 'primary', group: 'g1'}
+    ],
+    edges: [
+      {id: 'ab', from: 'a', to: 'b', kind: 'sequence', status: 'confirmed', label: '分析'},
+      {id: 'bc', from: 'b', to: 'c', kind: 'sequence', status: 'confirmed', label: '汇总'}
+    ]
+  };
+  const hiddenFlowDesign = {
+    hidden_node_ids: ['b'],
+    visible_edge_ids: ['ab', 'bc'],
+    stage_flow_nodes: {g1: ['a', 'b', 'c']},
+    method_rail_mode: 'aligned'
+  };
+  const contracted = contractHiddenStageFlowEdges(hiddenFlowGraph, hiddenFlowDesign);
+  assert.equal(contracted.length, 1);
+  assert.deepEqual(contracted[0], {
+    id: 'bypass-g1-a-c',
+    from: 'a',
+    to: 'c',
+    kind: 'sequence',
+    status: 'confirmed',
+    label: '分析·汇总',
+    synthetic: true,
+    source_edge_ids: ['ab', 'bc']
+  });
   const horizontal = orthogonalRoute(
     {id: 'h', from: 'a', to: 'b', kind: 'sequence'},
     {a: {x: 100, y: 100, w: 100, h: 50}, b: {x: 400, y: 100, w: 100, h: 50}},
@@ -685,6 +718,20 @@ try {
   ).points;
   assert.equal(vertical.length, 2);
   assert.equal(vertical[0].x, vertical[1].x);
+  const forcedVerticalBounds = {
+    a: {x: 100, y: 100, w: 100, h: 50},
+    b: {x: 500, y: 320, w: 100, h: 50},
+    forcedBlocker: {x: 260, y: 205, w: 180, h: 70}
+  };
+  const forcedVertical = orthogonalRoute(
+    {id: 'forced-v', from: 'a', to: 'b', kind: 'sequence'},
+    forcedVerticalBounds,
+    simpleGraph,
+    {...simpleDesign, edge_orientation_overrides: {'forced-v': 'vertical'}}
+  ).points;
+  assert.equal(forcedVertical[0].x, forcedVertical[1].x);
+  assert.equal(isOrthogonalPoints(forcedVertical), true);
+  assert.deepEqual(crossingNodeIds(forcedVertical, forcedVerticalBounds, new Set(['a', 'b'])), []);
   const doglegBounds = {
     a: {x: 100, y: 100, w: 100, h: 50},
     b: {x: 500, y: 350, w: 100, h: 50},

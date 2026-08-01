@@ -19,6 +19,31 @@ The companion `intake_profile.json` may set `generation_mode` to `fast` or `rigo
     "route_mode": "research-process",
     "route_archetype": "classification-diagnosis-path",
     "domain_profile": "social-policy",
+    "core_problem": {
+      "question": "数字技术如何影响治理效能？",
+      "primary_relation": "数字技术赋能路径→治理效能",
+      "object": "县域乡村治理",
+      "boundary": "限定区域、时期与分析单元",
+      "outcome": "治理效能指标",
+      "innovation_cut": "机制与异质性",
+      "exclusions": ["与主关系无关的宏观背景"]
+    },
+    "literature_position": {
+      "main_views": ["制度视角", "技术应用视角", "绩效视角"],
+      "gap": "重现状、轻机制",
+      "increment": "补充机制识别"
+    },
+    "empirical_design": {
+      "unit": "县域/企业/个体",
+      "data_source": "数据集或资料来源",
+      "sample": "样本范围与时间",
+      "variable_roles": [{"role": "explanatory", "name": "核心解释变量", "measure": "量化方式"}, {"role": "outcome", "name": "被解释变量", "measure": "量化方式"}],
+      "baseline_model": "基准模型",
+      "identification": "识别策略",
+      "robustness": [],
+      "heterogeneity": [],
+      "mechanism": []
+    },
     "not_applicable": [
       {"category": "ethics_compliance", "reason": "公开聚合数据且不涉及个体"}
     ]
@@ -78,8 +103,8 @@ The companion `intake_profile.json` may set `generation_mode` to `fast` or `rigo
 - `lanes[].kind`: `primary`, `thinking`, `method`, `data`, `discipline`, `outcome`, `time`, or `capability`.
 - `groups[].stage`: `problem`, `theory`, `classification`, `diagnosis`, `mechanism`, `validation`, `translation`, `time_horizon`, `flow_phase`, or `other`.
 - `groups[].color_role`: `theory`, `data`, `analysis`, `mechanism`, `validation`, `outcome`, `risk`, or `neutral`.
-- `nodes[].kind`: `process`, `sample`, `method`, `data`, `metric`, `conclusion`, `decision`, `milestone`, `capability`, `risk`, or `note`.
-- `nodes[].role`: `stage_question`, `input`, `work_package`, `method`, `indicator`, `validation`, `stage_output`, `theory`, `decision_gate`, `risk`, or `note`.
+- `nodes[].kind`: `process`, `sample`, `method`, `data`, `metric`, `conclusion`, `decision`, `milestone`, `capability`, `risk`, `note`, `variable`, or `model`. Use `variable`/`model` when they must be independently editable nodes.
+- `nodes[].role`: `stage_question`, `input`, `work_package`, `method`, `indicator`, `validation`, `stage_output`, `theory`, `decision_gate`, `risk`, `note`, `research_question`, `literature_gap`, `variable`, `model`, or `data_source`.
 - `nodes[].emphasis`: `normal`, `accent`, `control`, or `uncertain`.
 - `nodes[].status`: `proposed`, `reported`, `optional`, `pending`, or `completed`.
 - `edges[].kind`: `sequence`, `causal`, `support`, `parallel`, `decision`, `feedback`, or `containment`.
@@ -186,6 +211,8 @@ Use this contract for new `research-process` figures:
   "method_rail_mode": "aligned",
   "method_rail_content": "summary-only",
   "render_edges": true,
+  "render_edge_labels": true,
+  "hidden_node_ids": [],
   "show_feedback": false,
   "typography_pt": {
     "title": 16,
@@ -231,6 +258,8 @@ The semantic adaptive layout owns all geometry:
 
 Do not include `canvas`, `column_headers`, lane coordinates, `placements`, `group_placements`, `visual_group_placements`, or `edge_paths` in a 1.4 adaptive input. These appear only in `render-layout.json` after resolution.
 
+When automatic port selection would force a confirmed branch through a sibling node, `edge_orientation_overrides` may request only `"horizontal"` or `"vertical"` for that edge. This is a port-direction hint, not manual geometry; final routing and collision checks remain automatic.
+
 `render-layout.json` records `regions`, `headers`, `region_cells`, `group_rows`, `visual_groups`, `stage_boxes`, `node_anchors`, `node_layouts`, `child_layouts`, `tree_routes`, `content_bbox`, the resolved canvas, the resolved PNG target, `standalone_svg_file`, `standalone_svg_sha256`, `editable_svg`, and `semantic_layers`. In adaptive mode, `visual_groups[group_id]` points exactly to the primary content cell; `group_rows` records occupancy only and is not a visible merged container. Rendering, validation, SVG/HTML export, PNG export, and QA consume the same resolved geometry.
 
 ## Legacy adaptive design 1.3
@@ -248,6 +277,8 @@ Design 1.3 remains readable for existing adaptive projects. It may contain a sep
   "canvas": {"width": 1240, "height": 1754},
   "target_png": {"width": 2480, "height": 3508, "dpi": 300},
   "render_edges": true,
+  "render_edge_labels": false,
+  "hidden_node_ids": [],
   "method_rail_mode": "aligned",
   "show_feedback": false,
   "typography_pt": {

@@ -33,10 +33,10 @@ if (!['fast', 'rigorous'].includes(mode)) {
   console.error(`Unsupported build mode: ${mode}. Use fast or rigorous.`);
   process.exit(2);
 }
-
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const steps = [
   ['validate-spec', 'validate-spec.mjs'],
+  ['validate-logic', 'validate-logic.mjs'],
   ['lock-spec', 'lock-spec.mjs'],
   ['render', 'render-html.mjs'],
   ['export-png', 'export-image.mjs'],

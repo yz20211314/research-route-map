@@ -16,6 +16,8 @@ export const DOMAIN_PROFILES = new Set([
 ]);
 export const EDGE_KINDS = new Set(['sequence', 'causal', 'support', 'parallel', 'decision', 'feedback', 'containment']);
 export const EDGE_STATUSES = new Set(['confirmed', 'optional', 'uncertain']);
+export const NODE_KINDS = new Set(['process', 'sample', 'method', 'data', 'metric', 'conclusion', 'decision', 'milestone', 'capability', 'risk', 'note', 'variable', 'model']);
+export const NODE_ROLES = new Set(['stage_question', 'input', 'work_package', 'method', 'indicator', 'validation', 'stage_output', 'theory', 'decision_gate', 'risk', 'note', 'research_question', 'literature_gap', 'variable', 'model', 'data_source']);
 export const LAYOUT_MODES = new Set([
   'portrait-research-process',
   'landscape-research-process',
@@ -144,6 +146,10 @@ export function normalizeDesign(input, graph) {
   design.typography_pt ??= ['1.2', '1.3', '1.4'].includes(input.schema_version) ? {...DEFAULT_TYPOGRAPHY_PT} : null;
   design.line_semantics ??= {orthogonal_only: true, max_segments: 3, optional_style: 'dashed'};
   design.render_edges = design.render_edges !== false;
+  // Edge labels are useful for diagnostics, but they quickly collide with
+  // dense research-route nodes. Keep the data in the graph and let each
+  // design opt into labels explicitly when there is enough space.
+  design.render_edge_labels = design.render_edge_labels !== false;
   design.show_feedback ??= false;
   design.visible_edge_ids ??= graph.edges.map((edge) => edge.id);
   design.hidden_node_ids ??= [];
@@ -206,6 +212,63 @@ export function visibleNodeSet(graph, design) {
     for (const id of methodLikeNodeIds(graph)) hidden.add(id);
   }
   return new Set(graph.nodes.filter((node) => !hidden.has(node.id)).map((node) => node.id));
+}
+
+/**
+ * Keep a stage's visible sequence continuous when one or more internal
+ * stage-flow nodes are intentionally hidden. The canonical graph remains
+ * unchanged; the returned synthetic edges exist only in the rendered view.
+ */
+export function contractHiddenStageFlowEdges(graph, design, visible = visibleNodeSet(graph, design)) {
+  const selected = new Set(design.visible_edge_ids ?? graph.edges.map((edge) => edge.id));
+  const eligible = graph.edges.filter((edge) => selected.has(edge.id));
+  const rendered = eligible.filter((edge) => visible.has(edge.from) && visible.has(edge.to));
+  const directSequence = new Set(rendered
+    .filter((edge) => edge.kind === 'sequence')
+    .map((edge) => `${edge.from}\u0000${edge.to}`));
+  const byPair = new Map(eligible
+    .filter((edge) => edge.kind === 'sequence' && edge.status === 'confirmed')
+    .map((edge) => [`${edge.from}\u0000${edge.to}`, edge]));
+  const synthetic = [];
+
+  for (const group of graph.groups) {
+    const fullFlow = design.stage_flow_nodes?.[group.id] ?? [];
+    const visibleFlow = fullFlow.filter((id) => visible.has(id));
+    for (let index = 0; index < visibleFlow.length - 1; index += 1) {
+      const from = visibleFlow[index];
+      const to = visibleFlow[index + 1];
+      const pairKey = `${from}\u0000${to}`;
+      if (directSequence.has(pairKey)) continue;
+      const fromIndex = fullFlow.indexOf(from);
+      const toIndex = fullFlow.indexOf(to, fromIndex + 1);
+      if (fromIndex < 0 || toIndex <= fromIndex + 1) continue;
+      const sourceEdges = [];
+      let complete = true;
+      for (let cursor = fromIndex; cursor < toIndex; cursor += 1) {
+        const edge = byPair.get(`${fullFlow[cursor]}\u0000${fullFlow[cursor + 1]}`);
+        if (!edge) {
+          complete = false;
+          break;
+        }
+        sourceEdges.push(edge);
+      }
+      if (!complete || !sourceEdges.length) continue;
+      const labels = [...new Set(sourceEdges.map((edge) => edge.label?.trim()).filter(Boolean))];
+      synthetic.push({
+        id: `bypass-${group.id}-${from}-${to}`,
+        from,
+        to,
+        kind: 'sequence',
+        status: 'confirmed',
+        label: labels.join('·'),
+        synthetic: true,
+        source_edge_ids: sourceEdges.map((edge) => edge.id)
+      });
+      directSequence.add(pairKey);
+    }
+  }
+
+  return [...rendered, ...synthetic];
 }
 
 function defaultGroupBoxes(graph, design) {
@@ -449,6 +512,7 @@ export function orthogonalRoute(edge, bounds, graph, design, anchors = bounds) {
   const to = anchors[edge.to] ?? bounds[edge.to];
   if (!from || !to) return {points: [], source: 'unresolved'};
   const methodIds = methodLikeNodeIds(graph);
+  const requestedOrientation = design.edge_orientation_overrides?.[edge.id];
   let orientation;
   let ports;
   if (edge.kind === 'support' && (methodIds.has(edge.from) || methodIds.has(edge.to))) {
@@ -460,10 +524,16 @@ export function orthogonalRoute(edge, bounds, graph, design, anchors = bounds) {
     orientation = 'horizontal';
   } else {
     const fc = center(from); const tc = center(to);
+    const overlapsX = from.x < to.x + to.w && to.x < from.x + from.w;
+    const overlapsY = from.y < to.y + to.h && to.y < from.y + from.h;
     const sameRow = Math.abs(fc.y - tc.y) <= Math.max(from.h, to.h) * .35;
     const sameColumn = Math.abs(fc.x - tc.x) <= Math.max(from.w, to.w) * .25;
-    orientation = sameRow ? 'horizontal' : sameColumn ? 'vertical'
-      : Math.abs(fc.x - tc.x) >= Math.abs(fc.y - tc.y) ? 'horizontal' : 'vertical';
+    orientation = ['horizontal', 'vertical'].includes(requestedOrientation)
+      ? requestedOrientation
+      : overlapsX && !overlapsY ? 'vertical'
+        : overlapsY && !overlapsX ? 'horizontal'
+          : sameRow ? 'horizontal' : sameColumn ? 'vertical'
+            : Math.abs(fc.x - tc.x) >= Math.abs(fc.y - tc.y) ? 'horizontal' : 'vertical';
     ports = orientation === 'horizontal' ? horizontalPorts(from, to) : verticalPorts(from, to);
   }
   const [p, q] = ports;
@@ -490,11 +560,27 @@ export function orthogonalRoute(edge, bounds, graph, design, anchors = bounds) {
   const W = design.canvas.width; const H = design.canvas.height;
   const candidates = [];
   if (orientation === 'horizontal') {
-    const values = [(p.x + q.x) / 2, Math.min(p.x, q.x) - 18, Math.max(p.x, q.x) + 18]
+    const obstacleChannels = Object.entries(bounds)
+      .filter(([id]) => ![edge.from, edge.to].includes(id))
+      .flatMap(([, box]) => [box.x - 18, box.x + box.w + 18]);
+    const values = [...new Set([
+      (p.x + q.x) / 2,
+      Math.min(p.x, q.x) - 18,
+      Math.max(p.x, q.x) + 18,
+      ...obstacleChannels
+    ])]
       .filter((value) => value > 8 && value < W - 8);
     for (const x of values) candidates.push(dedupeOrthogonalPoints([p, {x, y: p.y}, {x, y: q.y}, q]));
   } else {
-    const values = [(p.y + q.y) / 2, Math.min(p.y, q.y) - 18, Math.max(p.y, q.y) + 18]
+    const obstacleChannels = Object.entries(bounds)
+      .filter(([id]) => ![edge.from, edge.to].includes(id))
+      .flatMap(([, box]) => [box.y - 18, box.y + box.h + 18]);
+    const values = [...new Set([
+      (p.y + q.y) / 2,
+      Math.min(p.y, q.y) - 18,
+      Math.max(p.y, q.y) + 18,
+      ...obstacleChannels
+    ])]
       .filter((value) => value > 8 && value < H - 8);
     for (const y of values) candidates.push(dedupeOrthogonalPoints([p, {x: p.x, y}, {x: q.x, y}, q]));
   }

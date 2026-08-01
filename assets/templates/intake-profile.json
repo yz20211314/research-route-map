@@ -23,6 +23,31 @@
     "boundary": "",
     "expected_output": ""
   },
+  "core_problem": {
+    "question": "",
+    "primary_relation": "",
+    "object": "",
+    "boundary": "",
+    "outcome": "",
+    "innovation_cut": "",
+    "exclusions": []
+  },
+  "literature_position": {
+    "main_views": [],
+    "gap": "",
+    "increment": ""
+  },
+  "empirical_design": {
+    "unit": "",
+    "data_source": "",
+    "sample": "",
+    "variable_roles": [],
+    "baseline_model": "",
+    "identification": "",
+    "robustness": [],
+    "heterogeneity": [],
+    "mechanism": []
+  },
   "resources": {
     "data_samples": "",
     "equipment_software": "",

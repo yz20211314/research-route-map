@@ -158,6 +158,54 @@ export function validateDraftInputs(intake, basis, draftRaw) {
     if (!Array.isArray(intake?.resources?.[field])) errors.push(`intake_profile.json: resources.${field} must be an array`);
   }
 
+  // Optional V2 logic contract. Empty objects remain backward-compatible; once
+  // a section is supplied, validate the fields that make the route falsifiable.
+  const coreProblem = intake?.core_problem;
+  const coreProblemHasContent = coreProblem && Object.values(coreProblem).some((value) => (
+    Array.isArray(value) ? value.length > 0 : nonEmpty(value)
+  ));
+  if (coreProblemHasContent) {
+    for (const field of ['question', 'primary_relation', 'object', 'boundary', 'outcome']) {
+      if (!nonEmpty(coreProblem?.[field])) errors.push(`intake_profile.json: core_problem.${field} is required when core_problem is supplied`);
+    }
+    if (!Array.isArray(coreProblem.exclusions)) errors.push('intake_profile.json: core_problem.exclusions must be an array');
+  }
+
+  const literature = intake?.literature_position;
+  const literatureHasContent = literature && Object.values(literature).some((value) => (
+    Array.isArray(value) ? value.length > 0 : nonEmpty(value)
+  ));
+  if (literatureHasContent) {
+    if (!Array.isArray(literature.main_views) || literature.main_views.length < 1) {
+      errors.push('intake_profile.json: literature_position.main_views needs at least one summarized view');
+    }
+    for (const field of ['gap', 'increment']) {
+      if (!nonEmpty(literature?.[field])) errors.push(`intake_profile.json: literature_position.${field} is required when literature_position is supplied`);
+    }
+  }
+
+  const empirical = intake?.empirical_design;
+  const empiricalHasContent = empirical && Object.values(empirical).some((value) => (
+    Array.isArray(value) ? value.length > 0 : nonEmpty(value)
+  ));
+  if (empiricalHasContent) {
+    for (const field of ['unit', 'data_source', 'sample', 'baseline_model']) {
+      if (!nonEmpty(empirical?.[field])) errors.push(`intake_profile.json: empirical_design.${field} is required when empirical_design is supplied`);
+    }
+    if (!Array.isArray(empirical.variable_roles) || empirical.variable_roles.length < 2) {
+      errors.push('intake_profile.json: empirical_design.variable_roles needs at least two roles');
+    } else {
+      for (const item of empirical.variable_roles) {
+        if (!nonEmpty(item?.role) || !nonEmpty(item?.name) || !nonEmpty(item?.measure)) {
+          errors.push('intake_profile.json: each empirical_design.variable_roles item needs role, name, and measure');
+        }
+      }
+    }
+    for (const field of ['robustness', 'heterogeneity', 'mechanism']) {
+      if (!Array.isArray(empirical[field])) errors.push(`intake_profile.json: empirical_design.${field} must be an array`);
+    }
+  }
+
   const questions = Array.isArray(intake?.questions) ? intake.questions : [];
   if (!Array.isArray(intake?.questions)) errors.push('intake_profile.json: questions must be an array');
   if (intake?.question_count !== questions.length) errors.push('intake_profile.json: question_count must equal questions.length');

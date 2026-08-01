@@ -13,6 +13,8 @@ import {
   LAYOUT_STRATEGIES,
   LAYOUT_MODES,
   METHOD_RAIL_MODES,
+  NODE_KINDS,
+  NODE_ROLES,
   PAGE_MODES,
   ROUTE_MODES,
   SOURCE_TYPES,
@@ -157,6 +159,8 @@ if (graphInput && graph) {
       if (!node.role || !node.kind || !node.emphasis || !node.status) {
         errors.push(`node ${node.id}: role, kind, emphasis, and status are required in schema 1.2`);
       }
+      if (node.kind) ensureEnum(node.kind, NODE_KINDS, `node ${node.id} kind`);
+      if (node.role) ensureEnum(node.role, NODE_ROLES, `node ${node.id} role`);
       if (node.children.length > 4) errors.push(`node ${node.id}: children supports at most four visible child items`);
       for (const child of node.children) {
         if (!child.id || childIds.has(child.id) || nodeIds.has(child.id)) {
