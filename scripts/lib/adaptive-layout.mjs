@@ -8,6 +8,11 @@ const MARGIN = 28;
 const REGION_GAP = 16;
 const STAGE_GAP = 18;
 const NODE_GAP = 14;
+// Reserve a generous horizontal gutter between sequential content nodes. The
+// gutter is intentionally larger than the visual node gap so edge labels can
+// sit beside their connectors without covering either endpoint.
+const FLOW_NODE_GAP = 145;
+const FLOW_ROW_GAP = 56;
 const METHOD_GAP = 12;
 const GROUP_TOP = 140;
 const GROUP_HEADER_INSET = 8;
@@ -169,6 +174,14 @@ const orderedLaneNodes = (graph, group, lane, visible, design) => {
     node.group === group.id && node.lane === lane.id && visible.has(node.id)
   ));
   if (lane.kind !== 'primary') return members;
+  const visualOrder = design.visual_node_order?.[group.id];
+  if (Array.isArray(visualOrder) && visualOrder.length) {
+    const specified = visualOrder
+      .map((id) => members.find((node) => node.id === id))
+      .filter(Boolean);
+    const selected = new Set(specified.map((node) => node.id));
+    return [...specified, ...members.filter((node) => !selected.has(node.id))];
+  }
   const specified = (design.stage_flow_nodes?.[group.id] ?? [])
     .map((id) => members.find((node) => node.id === id))
     .filter(Boolean);
@@ -179,7 +192,7 @@ const orderedLaneNodes = (graph, group, lane, visible, design) => {
 const packPrimary = (nodes, templates, capacity, allowWrap) => {
   if (!nodes.length) return [];
   const singleWidth = nodes.reduce((sum, node) => sum + templates[node.id].w, 0)
-    + NODE_GAP * Math.max(0, nodes.length - 1);
+    + FLOW_NODE_GAP * Math.max(0, nodes.length - 1);
   if (singleWidth <= capacity) return [nodes];
   if (!allowWrap) throw new Error(`primary flow needs ${Math.ceil(singleWidth)}px but only ${Math.floor(capacity)}px is available`);
   const rows = [];
@@ -188,7 +201,7 @@ const packPrimary = (nodes, templates, capacity, allowWrap) => {
   for (const node of nodes) {
     const width = templates[node.id].w;
     if (width > capacity) throw new Error(`node ${node.id} is wider than its content region`);
-    const next = row.length ? used + NODE_GAP + width : width;
+    const next = row.length ? used + FLOW_NODE_GAP + width : width;
     if (row.length && next > capacity) {
       rows.push(row);
       row = [node];
@@ -311,7 +324,7 @@ function attemptLayout(graph, design, width, allowWrap) {
         const rows = packPrimary(nodes, templates, capacity, allowWrap);
         const rowHeights = rows.map((row) => Math.max(...row.map((node) => templates[node.id].h)));
         const height = rowHeights.reduce((sum, value) => sum + value, 0)
-          + NODE_GAP * Math.max(0, rows.length - 1);
+          + FLOW_ROW_GAP * Math.max(0, rows.length - 1);
         lanePlans.push({lane, region, nodes, rows, rowHeights, height});
       } else {
         const gap = ['method', 'data'].includes(lane.kind) ? METHOD_GAP : NODE_GAP;
@@ -366,7 +379,7 @@ function attemptLayout(graph, design, width, allowWrap) {
         let rowY = bodyTop + (availableHeight - plan.height) / 2;
         plan.rows.forEach((row, rowIndex) => {
           const totalWidth = row.reduce((sum, node) => sum + templates[node.id].w, 0)
-            + NODE_GAP * Math.max(0, row.length - 1);
+            + FLOW_NODE_GAP * Math.max(0, row.length - 1);
           let x = plan.region.x + (plan.region.w - totalWidth) / 2;
           const rowHeightValue = plan.rowHeights[rowIndex];
           for (const node of row) {
@@ -385,9 +398,9 @@ function attemptLayout(graph, design, width, allowWrap) {
               segments: points.length - 1,
               dashed: false
             }));
-            x += template.w + NODE_GAP;
+            x += template.w + FLOW_NODE_GAP;
           }
-          rowY += rowHeightValue + NODE_GAP;
+          rowY += rowHeightValue + FLOW_ROW_GAP;
         });
       } else {
         const bodyTop = y + GROUP_BOTTOM_PADDING;
@@ -536,6 +549,8 @@ export const adaptiveConstants = {
   region_gap: REGION_GAP,
   stage_gap: STAGE_GAP,
   node_gap: NODE_GAP,
+  flow_node_gap: FLOW_NODE_GAP,
+  flow_row_gap: FLOW_ROW_GAP,
   method_gap: METHOD_GAP,
   group_vertical_padding: GROUP_BOTTOM_PADDING,
   tree_child_gap: TREE_CHILD_GAP,

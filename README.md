@@ -16,6 +16,7 @@ Research Route Map 是一个把既有研究内容或结构化研究提纲转换�
 - 新版研究流程图固定使用“研究思路 / 研究内容与阶段输出 / 研究方法”三列。
 - 具体数据、模型、变量、指标和检验放在研究内容列；右栏只汇总研究方法类别。
 - 对包含多个子项的节点使用树形结构，提升层级表达和可读性。
+- 新增“核心问题—文献空白—实证设计”逻辑层，避免把变量、模型和检验压缩成模板化阶段卡片。
 - 全流程使用直线或 90 度正交折线，不使用曲线连线。
 
 ## Core Framework
@@ -42,7 +43,8 @@ flowchart LR
   D --> C{"确认草图"}
   C -->|继续修改| D
   C -->|确认生成| G["结构化图模型"]
-  G --> S["可编辑 SVG"]
+  G --> L["逻辑 QA"]
+  L --> S["可编辑 SVG"]
   S --> H["静态 HTML"]
   S --> P["高清 PNG"]
   H --> A["QA 报告"]
@@ -110,7 +112,7 @@ SVG 保留真实文字、节点、连线和语义分组，不把文字转成轮�
 
 在 WPS 或 PowerPoint 中可将 SVG 作为清晰的矢量图形插入、缩放和调整样式；是否能转换或拆分为单个形状取决于软件版本。在 Illustrator、Inkscape 或 Figma 中，可按稳定分组直接修改节点、文字、连线和颜色。
 
-默认交付仅包含 `route-map.html`、`route-map.svg` 和 `route-map.png`。内部仍会维护问答档案、相似路线依据、草图修订、图模型和哈希锁，用于保证最终图与用户确认过的研究逻辑一致。
+默认交付仅包含 `route-map.html`、`route-map.svg` 和 `route-map.png`。内部仍会维护逻辑 QA 报告、问答档案、相似路线依据、草图修订、图模型和哈希锁，用于保证最终图与用户确认过的研究逻辑一致。
 
 ## Installation
 
@@ -178,7 +180,7 @@ npm test
 node scripts/build-route.mjs <project> --mode fast --delivery-dir <output-dir>
 ```
 
-构建命令会始终运行完整视觉 QA，但只将 HTML、SVG 和 PNG 复制到交付目录。
+构建命令会先运行 `validate-spec`、`validate-logic` 和完整视觉 QA，并只将 HTML、SVG 和 PNG 复制到交付目录。
 
 ## Project Structure
 

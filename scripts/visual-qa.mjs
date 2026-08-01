@@ -183,6 +183,42 @@ const headerBoxes = Object.entries(layout.visual_groups ?? {}).map(([id, value])
   {x: value.x + 12, y: value.y + 8, w: value.width - 24, h: design.stage_header_height ?? 40}
 ]);
 
+const labeledRoutes = (layout.edge_routes ?? []).filter((route) => route.label?.trim());
+const labelBoxes = [];
+const pointOnRoute = (point, points) => points.slice(0, -1).some((a, index) => {
+  const b = points[index + 1];
+  if (Math.abs(a.y - b.y) < .01) {
+    return Math.abs(point.y - a.y) < .01
+      && point.x >= Math.min(a.x, b.x) - .01
+      && point.x <= Math.max(a.x, b.x) + .01;
+  }
+  if (Math.abs(a.x - b.x) < .01) {
+    return Math.abs(point.x - a.x) < .01
+      && point.y >= Math.min(a.y, b.y) - .01
+      && point.y <= Math.max(a.y, b.y) + .01;
+  }
+  return false;
+});
+if (design.render_edge_labels !== false) {
+  for (const route of labeledRoutes) {
+    const labelBox = route.label_box;
+    const labelPoint = route.label_point;
+    if (!labelBox || !labelPoint) {
+      errors.push(`edge ${route.id} label is not rendered`);
+      continue;
+    }
+    const points = normalizePointArray(route.points ?? []);
+    if (!pointOnRoute(labelPoint, points)) errors.push(`edge ${route.id} label is not centered on its connector`);
+    for (const [nodeId, nodeBox] of boxes) {
+      if (overlaps(labelBox, nodeBox)) errors.push(`edge ${route.id} label overlaps node ${nodeId}`);
+    }
+    for (const [otherId, otherBox] of labelBoxes) {
+      if (overlaps(labelBox, otherBox)) errors.push(`edge label overlap: ${route.id} / ${otherId}`);
+    }
+    labelBoxes.push([route.id, labelBox]);
+  }
+}
+
 for (const route of layout.edge_routes ?? []) {
   const points = normalizePointArray(route.points ?? []);
   if (!isOrthogonalPoints(points)) errors.push(`edge ${route.id} is not orthogonal`);
@@ -200,7 +236,9 @@ for (const route of layout.edge_routes ?? []) {
     if (!route.label?.trim() && !endpointSignals) errors.push(`dashed edge ${route.id} lacks label or endpoint status`);
   }
   const edge = graphEdgeMap.get(route.id);
-  const endpointGroups = new Set(edge ? [nodeMap.get(edge.from)?.group, nodeMap.get(edge.to)?.group] : []);
+  const routeFrom = edge?.from ?? route.from;
+  const routeTo = edge?.to ?? route.to;
+  const endpointGroups = new Set([nodeMap.get(routeFrom)?.group, nodeMap.get(routeTo)?.group].filter(Boolean));
   for (let index = 0; index < points.length - 1; index += 1) {
     const a = points[index]; const b = points[index + 1];
     for (const [groupId, box] of groupBoxes) {
@@ -216,6 +254,36 @@ for (const route of layout.edge_routes ?? []) {
     if (outcomeBox && route.id !== 'stage-outcome' && segmentIntersectsBox(a, b, outcomeBox, 0)) {
       errors.push(`edge ${route.id} crosses outcome band`);
     }
+  }
+}
+
+const visibleNodeIds = new Set(boxes.map(([id]) => id));
+const visibleDirectedRoutes = (layout.edge_routes ?? []).filter((route) => (
+  ['sequence', 'causal', 'decision'].includes(route.kind)
+  && visibleNodeIds.has(route.from)
+  && visibleNodeIds.has(route.to)
+));
+let visibleStageOutputsConnected = true;
+for (const group of graph.groups) {
+  const outputId = group.output_node;
+  if (!outputId || !visibleNodeIds.has(outputId)) continue;
+  const flow = (design.stage_flow_nodes?.[group.id] ?? []).filter((id) => visibleNodeIds.has(id));
+  if (flow.length < 2) continue;
+  const start = flow[0];
+  const reachable = new Set([start]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const route of visibleDirectedRoutes) {
+      if (reachable.has(route.from) && !reachable.has(route.to)) {
+        reachable.add(route.to);
+        changed = true;
+      }
+    }
+  }
+  if (!reachable.has(outputId)) {
+    visibleStageOutputsConnected = false;
+    errors.push(`visible stage output ${outputId} is unreachable from ${start} after hidden-node filtering`);
   }
 }
 
@@ -512,9 +580,14 @@ const selfChecks = {
   no_connector_curves: !/[CQSTA]/i.test(
     [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1]).join(' ')
   ),
+  complete_edge_labels: design.render_edge_labels === false || labelBoxes.length === labeledRoutes.length,
+  edge_labels_on_connectors: design.render_edge_labels === false || labeledRoutes.every((route) => (
+    route.label_point && pointOnRoute(route.label_point, normalizePointArray(route.points ?? []))
+  )),
   png_dimensions: exportReport.output?.width === layout.target_png.width && exportReport.output?.height === layout.target_png.height,
   accessible_description: Boolean(layout.accessible_description),
-  grayscale_contrast_checked: Object.keys(layout.palette_checks ?? {}).length > 0
+  grayscale_contrast_checked: Object.keys(layout.palette_checks ?? {}).length > 0,
+  visible_stage_outputs_connected: visibleStageOutputsConnected
 };
 const result = {
   schema_version: designInput.schema_version,

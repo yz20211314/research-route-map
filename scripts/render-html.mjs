@@ -5,12 +5,12 @@ import {
   accessibleDescription,
   boxFrom,
   computeBounds,
+  contractHiddenStageFlowEdges,
   contrastRatio,
   crossingNodeIds,
   esc,
   graphReadingOrder,
   isDashedEdge,
-  longestSegmentMidpoint,
   nodeColors,
   normalizeDesign,
   normalizeGraph,
@@ -86,7 +86,6 @@ const bounds = adaptiveLayout?.bounds ?? computeBounds(graph, design);
 const nodeAnchors = adaptiveLayout?.node_anchors ?? bounds;
 const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
 const laneKind = new Map(graph.lanes.map((lane) => [lane.id, lane.kind]));
-const visibleEdgeIds = new Set(design.visible_edge_ids);
 
 const borderWidth = design.border_width ?? 1.4;
 const accentBorderWidth = design.accent_border_width ?? 2.4;
@@ -270,11 +269,52 @@ const groupSvg = groups.map((group, index) => {
 }).join('');
 
 const edgeRoutes = [];
-const renderableEdges = design.render_edges ? graph.edges.filter((edge) => (
-  visibleEdgeIds.has(edge.id)
-  && visible.has(edge.from)
-  && visible.has(edge.to)
-  && edge.kind !== 'containment'
+const edgeLabelBoxes = [];
+const boxesOverlap = (a, b, padding = 4) => !(
+  a.x + a.w + padding <= b.x
+  || b.x + b.w + padding <= a.x
+  || a.y + a.h + padding <= b.y
+  || b.y + b.h + padding <= a.y
+);
+const edgeLabelLayout = (edge, route) => {
+  if (design.render_edge_labels === false || !edge.label?.trim()) return null;
+  const fontSize = fonts.legend;
+  const width = Math.max(56, Math.min(176, edge.label.length * fontSize * .9 + 16));
+  const maxChars = Math.max(5, Math.floor((width - 16) / (fontSize * .9)));
+  const lineCount = splitText(edge.label, maxChars, 2).length;
+  const height = Math.max(fontSize * 1.55, lineCount * fontSize * 1.2 + 8);
+  const segments = route.points.slice(0, -1).map((a, index) => {
+    const b = route.points[index + 1];
+    return {
+      a,
+      b,
+      horizontal: Math.abs(a.y - b.y) < .01,
+      vertical: Math.abs(a.x - b.x) < .01,
+      length: Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+    };
+  }).filter((segment) => segment.length > 12).sort((a, b) => (
+    Number(b.horizontal) - Number(a.horizontal) || b.length - a.length
+  ));
+  for (const segment of segments) {
+    if (segment.horizontal && segment.length < width + 4) continue;
+    if (segment.vertical && segment.length < height + 4) continue;
+    for (const t of [.5, .35, .65]) {
+      const base = {
+        x: segment.a.x + (segment.b.x - segment.a.x) * t,
+        y: segment.a.y + (segment.b.y - segment.a.y) * t
+      };
+      const box = {x: base.x - width / 2, y: base.y - height / 2, w: width, h: height};
+      if (box.x < 8 || box.y < 8 || box.x + box.w > W - 8 || box.y + box.h > H - 8) continue;
+      if (Object.values(bounds).some((nodeBox) => boxesOverlap(box, nodeBox, 4))) continue;
+      if (edgeLabelBoxes.some((labelBox) => boxesOverlap(box, labelBox, 4))) continue;
+      edgeLabelBoxes.push(box);
+      return {box, x: base.x, y: base.y, fontSize, maxChars};
+    }
+  }
+  return null;
+};
+const renderableEdges = design.render_edges ? contractHiddenStageFlowEdges(graph, design, visible).filter((edge) => (
+  edge.kind !== 'containment'
   && !(edge.kind === 'support' && design.method_rail_mode !== 'mapped')
   && !(edge.kind === 'feedback' && design.show_feedback !== true)
 )) : [];
@@ -289,13 +329,12 @@ const edgeSvg = renderableEdges.map((edge) => {
   const width = edge.kind === 'support' ? 1.2 : edge.kind === 'feedback' ? 1.4 : 1.8;
   const hasArrow = !['parallel'].includes(edge.kind);
   const dash = dashed ? ' stroke-dasharray="8 6"' : '';
-  const labelPoint = longestSegmentMidpoint(route.points);
-  const label = edge.label?.trim() ? (() => {
-    const fontSize = fonts.legend;
-    const boxWidth = Math.max(34, edge.label.length * fontSize * .85 + 12);
+  const labelLayout = edgeLabelLayout(edge, route);
+  const label = labelLayout ? (() => {
+    const {box, x, y, fontSize, maxChars} = labelLayout;
     return `<g class="edge-label">
-      <rect x="${round(labelPoint.x - boxWidth / 2)}" y="${round(labelPoint.y - fontSize * .8)}" width="${round(boxWidth)}" height="${round(fontSize * 1.6)}" rx="2" fill="#FFFFFF" stroke="none"/>
-      ${textSvg({text: edge.label, x: labelPoint.x, y: labelPoint.y, fontSize, weight: 600, maxChars: Math.max(4, edge.label.length), maxLines: 1})}
+      <rect x="${round(box.x)}" y="${round(box.y)}" width="${round(box.w)}" height="${round(box.h)}" rx="3" fill="#FFFFFF" fill-opacity=".96" stroke="${design.theme.muted}" stroke-opacity=".35" stroke-width=".8"/>
+      ${textSvg({text: edge.label, x, y, fontSize, weight: 600, maxChars, maxLines: 2})}
     </g>`;
   })() : '';
   edgeRoutes.push({
@@ -306,6 +345,8 @@ const edgeSvg = renderableEdges.map((edge) => {
     status: edge.status,
     dashed,
     label: edge.label ?? '',
+    label_box: labelLayout?.box ?? null,
+    label_point: labelLayout ? {x: labelLayout.x, y: labelLayout.y} : null,
     points: route.points,
     segments: route.points.length - 1,
     source: route.source,

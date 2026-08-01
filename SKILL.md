@@ -45,11 +45,11 @@ When “技术路线图” is ambiguous, use `research-process` and record the a
 
 Fast profile:
 
-`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → reuse verified basis → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
+`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → reuse verified basis → graph/design → validate-spec → logic QA → lock-spec → editable SVG/static HTML → PNG → QA`
 
 Rigorous profile:
 
-`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → lock-spec → editable SVG/static HTML → PNG → QA`
+`Topic + research content → completeness check → analogous-route presearch → adaptive intake → Mermaid draft/revisions → explicit draft confirmation → validate-draft → lock-draft → evidence deepening → graph/design → validate-spec → logic QA → lock-spec → editable SVG/static HTML → PNG → QA`
 
 For a new project, Mermaid is the only user-facing confirmation gate. Do not create `research_route_framework.md`.
 
@@ -119,9 +119,9 @@ The draft must:
 - use only straight or right-angle step connectors;
 - contain 3–5 stage/work-package cards by default;
 - use six stages only with a documented density exception;
-- contain no more than 10 visible nodes;
+- contain no more than 10 visible nodes in the conversational confirmation draft; the confirmed graph may expand into distinct subnodes, branches, variables, models, and validation checks;
 - use stable IDs such as `S1`, `S2`, `D1`, `O1`, and `P1`;
-- for a new `research-process`, give every `S` card exactly four lines in this order: `思路 / 内容 / 方法 / 产出`;
+- for a new `research-process`, use the compact four-line `思路 / 内容 / 方法 / 产出` grammar as the confirmation shorthand; it is not a reason to collapse the final graph's mechanisms, variables, data, or validation into one label;
 - keep the research-thinking phrase after `思路：` to 2–6 CJK-equivalent characters and do not expose numbered stage labels;
 - put concrete data, models, variables, indicators, and validation in `内容`; put only summarized method-category names in `方法`;
 - keep each stage line near 14 CJK-equivalent characters;
@@ -195,7 +195,7 @@ For a new `research-process` project:
 - create exactly one primary content lane and one method lane; do not create a separate thinking lane or duplicate thinking nodes;
 - use `groups[].short_label` for the 2–6-character left research-thinking rail and `groups[].label` for the content-cell title;
 - place concrete models, datasets, variables, indicators, and validation inside the primary content lane;
-- place only one to three childless summary method cards per group in the method lane;
+- place one to three childless summary method cards per group in the method lane; detailed variables, models, data sources, and validation nodes belong in the primary content lane;
 - set `stage_rail.semantic_role: "thinking"` and `method_rail_content: "summary-only"`;
 - use the exact visible headers `研究思路 / 研究内容与阶段输出 / 研究方法`.
 
@@ -216,10 +216,11 @@ Verify every applicable category: objective, object/boundary, theory/context, da
 For a manual build, run in order:
 
 1. `node scripts/validate-spec.mjs <project>`
-2. `node scripts/lock-spec.mjs <project>`
-3. `node scripts/render-html.mjs <project>`
-4. `node scripts/export-image.mjs <project>`
-5. `node scripts/visual-qa.mjs <project>`
+2. `node scripts/validate-logic.mjs <project>`
+3. `node scripts/lock-spec.mjs <project>`
+4. `node scripts/render-html.mjs <project>`
+5. `node scripts/export-image.mjs <project>`
+6. `node scripts/visual-qa.mjs <project>`
 
 For a single low-overhead build invocation after the draft and source locks already exist, use:
 
@@ -228,6 +229,8 @@ node scripts/build-route.mjs <project> --mode fast --delivery-dir <output-dir>
 ```
 
 Use `--mode rigorous` when the project needs Pass 2 provenance. The build command still runs full visual QA in both modes; it only reduces orchestration round-trips. `--delivery-dir` copies only `route-map.html`, `route-map.svg`, and `route-map.png`. Internal JSON files remain in the project for reproducibility and are not copied to the delivery directory.
+
+When graph edges carry labels, keep `render_edge_labels: true` and enlarge the adaptive gutters or wrapped-row channels until every label is centered on its connector and clears all nodes and other labels. Disable edge labels only when the user explicitly requests an unlabeled figure. Use `hidden_node_ids` to suppress unresolved or pending nodes from the visual delivery while retaining them in `research_graph.json`, validation, and logic QA. If a hidden node lies inside `stage_flow_nodes`, contract the hidden sequence into a labeled visible bypass edge; final QA must reject any visible stage output that becomes unreachable after filtering.
 
 Write `route-map.svg` as an editable, self-contained SVG 1.1 artifact, and embed that exact SVG string in the static HTML. Preserve real `<text>/<tspan>` elements and stable semantic groups for layers, stages, nodes, and edges. Use basic Office-compatible SVG primitives only; do not use scripts, remote resources, `foreignObject`, filters, gradients, patterns, images, marker arrowheads, or embedded fonts.
 
@@ -269,6 +272,7 @@ Playwright may capture the standalone SVG element. If unavailable, rasterize `ro
 | `research_graph.json` | Canonical scientific and evidence model |
 | `design_spec.json` / `design_spec.md` | Static visual contract |
 | `validation-report.json` | Graph/design/source checks |
+| `logic-validation-report.json` | Core problem, literature gap, empirical-design, concentration, and anti-template checks |
 | `spec_lock.json` | Confirmed source, graph, design, and validation hashes |
 | `route-map.svg` | Editable Office-compatible standalone SVG |
 | `route-map.html` | Self-contained static HTML |

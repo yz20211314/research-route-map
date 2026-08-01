@@ -46,7 +46,7 @@
 - Adaptive PNG target is exactly 2× the resolved source canvas with 300 dpi metadata.
 - Legacy explicit A4 source canvas remains `1240 × 1754` portrait or `1754 × 1240` landscape.
 - Keep 28–40 source-pixel outer margins.
-- Adaptive research-process uses 28 px page margins, 16 px region gaps, 18 px stage gaps, 14 px content-node gaps, 12 px method-stack gaps, and 12 px container vertical padding.
+- Adaptive research-process uses 28 px page margins, 16 px region gaps, 18 px stage gaps, 145 px labeled primary-flow gutters, 56 px wrapped-row label channels, 12 px method-stack gaps, and 12 px container vertical padding. Compact unlabeled sibling spacing may remain 14 px.
 - The content-cell requirement is stage-title height plus its gap, content occupancy, and padding. Other cells use their own occupancy plus vertical padding. A stage row takes the maximum of those real cell requirements.
 - Keep 16 px gutters between the research-thinking rail, primary content cell, and summary method cell. Do not draw a merged container across them.
 - Use solid macro containers. Optional/pending containers may use a dashed border only with a textual status.
@@ -59,6 +59,9 @@
 - Maximum connector complexity is set by `line_semantics.max_segments` and may not exceed three segments. Change ports or layout when three segments cannot avoid an obstacle.
 - Prefer designated ports: left/right for within-stage and method mapping, top/bottom for stage handoff.
 - A connector must not pass through an unrelated node, header, group, or outcome region.
+- A visible edge label is centered directly on a horizontal or vertical connector segment. Reserve a sufficiently long segment and use an opaque paper-colored label background to interrupt the line behind the text.
+- Reject labels that float away from their connector, overlap a node or another label, or disappear because no collision-free segment was allocated. Increase flow or row gutters instead of offsetting the label away from the line.
+- When hidden nodes occur inside an ordered stage flow, contract the hidden sequence into one visible orthogonal bypass edge. Preserve the distinct source labels in reading order and reject a visible stage output that becomes unreachable.
 - No Bezier curves, splines, or arcs.
 
 ### Line semantics
@@ -145,6 +148,7 @@ Reject if:
 - connector geometry contains a curve/arc command;
 - a dashed connector lacks optional/uncertain semantics plus label/status;
 - a connector crosses an unrelated node/header/group/outcome;
+- a requested edge label is missing, is not centered on its connector, or overlaps a node or another label;
 - text is below 7 pt, clipped, or missing glyphs;
 - nodes or macro groups overlap;
 - color/graphical contrast fails;

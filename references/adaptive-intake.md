@@ -34,6 +34,34 @@ Store new-project state in `intake_profile.json` with schema `1.1`. Schema 1.0 r
     "boundary": "",
     "expected_output": ""
   },
+  "core_problem": {
+    "question": "数字技术如何影响治理效能？",
+    "primary_relation": "数字技术赋能路径→治理效能",
+    "object": "县域乡村治理",
+    "boundary": "限定区域、时期与分析单元",
+    "outcome": "治理效能指标",
+    "innovation_cut": "机制与异质性",
+    "exclusions": ["与主关系无关的宏观背景"]
+  },
+  "literature_position": {
+    "main_views": ["制度视角", "技术应用视角", "绩效视角"],
+    "gap": "重宏观、轻微观；重现状、轻机制",
+    "increment": "补充微观机制识别与区域比较"
+  },
+  "empirical_design": {
+    "unit": "县域/企业/个体",
+    "data_source": "数据集、年鉴或访谈来源",
+    "sample": "样本范围与时间",
+    "variable_roles": [
+      {"role": "explanatory", "name": "核心解释变量", "measure": "量化方式"},
+      {"role": "outcome", "name": "被解释变量", "measure": "量化方式"}
+    ],
+    "baseline_model": "基准模型",
+    "identification": "识别策略",
+    "robustness": ["替换指标", "安慰剂/稳健性检验"],
+    "heterogeneity": ["分组或交互项"],
+    "mechanism": ["中介/机制变量"]
+  },
   "resources": {
     "data_samples": "",
     "equipment_software": "",

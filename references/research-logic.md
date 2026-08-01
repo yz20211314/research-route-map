@@ -2,7 +2,7 @@
 
 ## Extraction order
 
-Read in this order: objective/question; object/unit/boundary; theory/context; data/sample/evidence; substantive work packages; matched methods; variables/indicators/criteria; mechanism or relationship; validation; outputs and translation.
+Read in this order: objective/question; core relation and exclusions; object/unit/boundary; literature views and gap; theory/context; data/sample/evidence; substantive work packages; matched methods; variables/indicators/criteria; mechanism or relationship; baseline model and identification; robustness/heterogeneity/mechanism checks; validation; outputs and translation.
 
 ## Route selection
 
@@ -43,6 +43,18 @@ For new semantic research-process projects, distinguish the visible roles:
 - the method lane summarizes only broad research-method categories such as “文献分析法” or “案例分析法”.
 
 Do not create a separate thinking lane. Do not move datasets, models, variables, indicators, or validation details into the summary method rail.
+
+The semantic V2 fields are optional but strongly recommended for proposal and fund-application routes:
+
+- `core_problem` — question, primary relation, object, boundary, outcome, innovation cut, and explicit exclusions;
+- `literature_position` — two to three summarized views, the research gap, and the academic increment;
+- `empirical_design` — unit, data source, sample, variable roles/measures, baseline model, identification, robustness, heterogeneity, and mechanism checks.
+
+Use independently editable `variable` and `model` nodes when a variable/model participates in more than one relation. Use a `support` edge to map each such node to the work package or output it informs. Do not use a long label as a substitute for a missing edge.
+
+Before delivery, run `validate-logic.mjs`. It flags missing semantic anchors, duplicate labels, unsupported method/data/model nodes, isolated work nodes, overfull groups, and long linear chains with no mechanism, decision, validation, or parallel relation. Warnings are prompts for review; `--strict` turns them into a release gate.
+
+For empirical proposal routes, also check that title-level outcome terms such as “提质” or “增效” are explicitly operationalized by the outcome measure, and that confirmed mechanism variables reappear in the translation/path package instead of disappearing before the recommendation stage.
 
 ## Other route modes
 

@@ -9,9 +9,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "npm run test:draft && npm run test:stages && npm run test:static",
+    "test": "npm run test:draft && npm run test:stages && npm run test:logic && npm run test:static",
     "test:draft": "node scripts/test-draft-pipeline.mjs",
     "test:stages": "node scripts/test-stage-counts.mjs",
+    "test:logic": "node scripts/test-logic-qa.mjs",
     "test:static": "node scripts/test-static-pipeline.mjs",
     "build": "node scripts/build-route.mjs"
   },
